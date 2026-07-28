@@ -1,0 +1,37 @@
+services:
+  api:
+    build: .
+    container_name: nupun-health-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      # Override for local docker networking if using the bundled Mongo below.
+      # MONGODB_URL: mongodb://mongo:27017
+      APP_ENV: production
+    # depends_on:
+    #   - mongo
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  # Optional local MongoDB (the project ships pointed at MongoDB Atlas).
+  # Uncomment this service and the depends_on/MONGODB_URL above to run a
+  # fully local stack.
+  #
+  # mongo:
+  #   image: mongo:7
+  #   container_name: nupun-health-mongo
+  #   restart: unless-stopped
+  #   ports:
+  #     - "27017:27017"
+  #   volumes:
+  #     - mongo_data:/data/db
+
+# volumes:
+#   mongo_data:

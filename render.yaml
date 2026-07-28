@@ -1,0 +1,58 @@
+# Render.com Blueprint for Nupun Home Health Care Services API.
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: nupun-health-api
+    runtime: python
+    plan: starter
+    region: singapore
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: >
+      gunicorn app.main:app
+      --worker-class uvicorn.workers.UvicornWorker
+      --workers 4
+      --bind 0.0.0.0:$PORT
+      --timeout 120
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.13.4"
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true
+      # The following secrets must be set in the Render dashboard:
+      - key: MONGODB_URL
+        sync: false
+      - key: MONGODB_DB_NAME
+        value: nupun_health
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM_EMAIL
+        sync: false
+      - key: ADMIN_NOTIFICATION_EMAIL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: FIRST_ADMIN_EMAIL
+        sync: false
+      - key: FIRST_ADMIN_PASSWORD
+        sync: false
