@@ -22,6 +22,22 @@ class WorkingHour(BaseModel):
     is_closed: bool = False
 
 
+class HeroStat(BaseModel):
+    """A single stat displayed in the services hero band (e.g. ``24/7`` → ``Patient Support``)."""
+
+    value: str
+    label: str
+
+
+class ServicesHero(BaseModel):
+    """Editable content for the Services page hero section."""
+
+    title: Optional[str] = None
+    subtitle: Optional[str] = None
+    background_image: Optional[ImageAsset] = None
+    stats: List[HeroStat] = Field(default_factory=list)
+
+
 class WebsiteSettings(TimestampedDocument):
     """Global website / brand settings."""
 
@@ -38,6 +54,8 @@ class WebsiteSettings(TimestampedDocument):
     google_reviews_link: Optional[str] = None
 
     working_hours: List[WorkingHour] = Field(default_factory=list)
+
+    services_hero: Optional[ServicesHero] = None
 
     is_active: bool = True
 

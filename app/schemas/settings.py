@@ -7,7 +7,7 @@ from typing import List, Optional
 from pydantic import BaseModel, EmailStr, Field
 
 from app.models.base import ImageAsset
-from app.models.settings import WorkingHour
+from app.models.settings import ServicesHero, WorkingHour
 from app.schemas.common import IdTimestampSchema
 
 
@@ -26,6 +26,7 @@ class WebsiteSettingsUpdate(BaseModel):
     google_map_embed: Optional[str] = None
     google_reviews_link: Optional[str] = None
     working_hours: Optional[List[WorkingHour]] = None
+    services_hero: Optional[ServicesHero] = None
 
 
 class WebsiteSettingsResponse(IdTimestampSchema):
@@ -40,6 +41,7 @@ class WebsiteSettingsResponse(IdTimestampSchema):
     google_map_embed: Optional[str] = None
     google_reviews_link: Optional[str] = None
     working_hours: List[WorkingHour] = Field(default_factory=list)
+    services_hero: Optional[ServicesHero] = None
 
 
 # ---- Social links ----
