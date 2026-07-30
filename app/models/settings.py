@@ -50,6 +50,14 @@ class ServicesHero(BaseModel):
     slides: List[HeroSlide] = Field(default_factory=list)
 
 
+class HomeHeroStat(BaseModel):
+    """A single stat displayed in the home hero section (e.g. 100 + Verified Caregivers)."""
+
+    value: int = 0
+    suffix: str = ""
+    label: str = ""
+
+
 class HomeHero(BaseModel):
     """Editable content for the Home page hero section."""
 
@@ -57,6 +65,7 @@ class HomeHero(BaseModel):
     trust_badge_quote: Optional[str] = '"Their nursing staff is extremely professional and compassionate. Highly recommended!"'
     trust_badge_avatars: List[ImageAsset] = Field(default_factory=list)
     slider_images: List[ImageAsset] = Field(default_factory=list)
+    stats: List[HomeHeroStat] = Field(default_factory=list)
 
 
 class WebsiteSettings(TimestampedDocument):
