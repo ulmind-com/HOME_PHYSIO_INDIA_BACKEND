@@ -58,6 +58,9 @@ class WebsiteSettings(TimestampedDocument):
     logo: Optional[ImageAsset] = None
     favicon: Optional[ImageAsset] = None
 
+    theme_primary: Optional[str] = None
+    theme_accent: Optional[str] = None
+
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
     whatsapp: Optional[str] = None
