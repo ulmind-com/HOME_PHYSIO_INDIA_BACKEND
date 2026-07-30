@@ -29,6 +29,17 @@ class HeroStat(BaseModel):
     label: str
 
 
+class HeroSlide(BaseModel):
+    """A single slide for the services hero carousel."""
+
+    title: Optional[str] = None
+    subtitle: Optional[str] = None
+    button_text: Optional[str] = None
+    button_link: Optional[str] = None
+    background_image: Optional[ImageAsset] = None
+    order: int = 0
+
+
 class ServicesHero(BaseModel):
     """Editable content for the Services page hero section."""
 
@@ -36,6 +47,7 @@ class ServicesHero(BaseModel):
     subtitle: Optional[str] = None
     background_image: Optional[ImageAsset] = None
     stats: List[HeroStat] = Field(default_factory=list)
+    slides: List[HeroSlide] = Field(default_factory=list)
 
 
 class WebsiteSettings(TimestampedDocument):
