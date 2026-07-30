@@ -50,6 +50,15 @@ class ServicesHero(BaseModel):
     slides: List[HeroSlide] = Field(default_factory=list)
 
 
+class HomeHero(BaseModel):
+    """Editable content for the Home page hero section."""
+
+    trust_badge_text: Optional[str] = "Trusted by 5,000+"
+    trust_badge_quote: Optional[str] = '"Their nursing staff is extremely professional and compassionate. Highly recommended!"'
+    trust_badge_avatars: List[ImageAsset] = Field(default_factory=list)
+    slider_images: List[ImageAsset] = Field(default_factory=list)
+
+
 class WebsiteSettings(TimestampedDocument):
     """Global website / brand settings."""
 
@@ -71,6 +80,7 @@ class WebsiteSettings(TimestampedDocument):
     working_hours: List[WorkingHour] = Field(default_factory=list)
 
     services_hero: Optional[ServicesHero] = None
+    home_hero: Optional[HomeHero] = None
 
     is_active: bool = True
 
