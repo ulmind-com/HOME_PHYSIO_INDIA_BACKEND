@@ -7,7 +7,17 @@ from typing import List, Optional
 from pydantic import BaseModel, EmailStr, Field
 
 from app.models.base import ImageAsset
-from app.models.settings import ServicesHero, WorkingHour
+from app.models.settings import (
+    CareTeamSlide,
+    HomeHero,
+    LegalSection,
+    ServicesHero,
+    TeamTile,
+    ValueItem,
+    WhyChooseItem,
+    WorkingHour,
+    HeroStat,
+)
 from app.schemas.common import IdTimestampSchema
 
 
@@ -29,6 +39,51 @@ class WebsiteSettingsUpdate(BaseModel):
     google_reviews_link: Optional[str] = None
     working_hours: Optional[List[WorkingHour]] = None
     services_hero: Optional[ServicesHero] = None
+    home_hero: Optional[HomeHero] = None
+
+    # Home page hero
+    hero_headline: Optional[str] = None
+    hero_subtitle: Optional[str] = None
+    hero_description: Optional[str] = None
+    hero_image: Optional[ImageAsset] = None
+    hero_stats: Optional[List[HeroStat]] = None
+
+    # About page
+    about_hero_badge: Optional[str] = None
+    about_hero_title: Optional[str] = None
+    about_hero_description: Optional[str] = None
+    about_hero_image: Optional[ImageAsset] = None
+    about_hero_stats: Optional[List[HeroStat]] = None
+    about_story_title: Optional[str] = None
+    about_story_text: Optional[str] = None
+    about_stats: Optional[List[HeroStat]] = None
+    about_values: Optional[List[ValueItem]] = None
+    about_commitments: Optional[List[str]] = None
+    about_welcome_title: Optional[str] = None
+    about_welcome_description: Optional[str] = None
+    about_welcome_image: Optional[ImageAsset] = None
+
+    # Content sections
+    how_it_works_steps: Optional[List[ValueItem]] = None
+    team_tiles: Optional[List[TeamTile]] = None
+    care_team_slides: Optional[List[CareTeamSlide]] = None
+    trust_bar_items: Optional[List[str]] = None
+    why_choose_items: Optional[List[WhyChooseItem]] = None
+    conditions_list: Optional[List[str]] = None
+
+    # Footer
+    footer_tagline: Optional[str] = None
+    footer_description: Optional[str] = None
+    footer_image: Optional[str] = None
+
+    # CTA
+    cta_title: Optional[str] = None
+    cta_description: Optional[str] = None
+
+    # Legal pages
+    privacy_sections: Optional[List[LegalSection]] = None
+    terms_sections: Optional[List[LegalSection]] = None
+    refund_sections: Optional[List[LegalSection]] = None
 
 
 class WebsiteSettingsResponse(IdTimestampSchema):
@@ -46,6 +101,51 @@ class WebsiteSettingsResponse(IdTimestampSchema):
     google_reviews_link: Optional[str] = None
     working_hours: List[WorkingHour] = Field(default_factory=list)
     services_hero: Optional[ServicesHero] = None
+    home_hero: Optional[HomeHero] = None
+
+    # Home page hero
+    hero_headline: Optional[str] = None
+    hero_subtitle: Optional[str] = None
+    hero_description: Optional[str] = None
+    hero_image: Optional[ImageAsset] = None
+    hero_stats: List[HeroStat] = Field(default_factory=list)
+
+    # About page
+    about_hero_badge: Optional[str] = None
+    about_hero_title: Optional[str] = None
+    about_hero_description: Optional[str] = None
+    about_hero_image: Optional[ImageAsset] = None
+    about_hero_stats: List[HeroStat] = Field(default_factory=list)
+    about_story_title: Optional[str] = None
+    about_story_text: Optional[str] = None
+    about_stats: List[HeroStat] = Field(default_factory=list)
+    about_values: List[ValueItem] = Field(default_factory=list)
+    about_commitments: List[str] = Field(default_factory=list)
+    about_welcome_title: Optional[str] = None
+    about_welcome_description: Optional[str] = None
+    about_welcome_image: Optional[ImageAsset] = None
+
+    # Content sections
+    how_it_works_steps: List[ValueItem] = Field(default_factory=list)
+    team_tiles: List[TeamTile] = Field(default_factory=list)
+    care_team_slides: List[CareTeamSlide] = Field(default_factory=list)
+    trust_bar_items: List[str] = Field(default_factory=list)
+    why_choose_items: List[WhyChooseItem] = Field(default_factory=list)
+    conditions_list: List[str] = Field(default_factory=list)
+
+    # Footer
+    footer_tagline: Optional[str] = None
+    footer_description: Optional[str] = None
+    footer_image: Optional[str] = None
+
+    # CTA
+    cta_title: Optional[str] = None
+    cta_description: Optional[str] = None
+
+    # Legal pages
+    privacy_sections: List[LegalSection] = Field(default_factory=list)
+    terms_sections: List[LegalSection] = Field(default_factory=list)
+    refund_sections: List[LegalSection] = Field(default_factory=list)
 
 
 # ---- Social links ----

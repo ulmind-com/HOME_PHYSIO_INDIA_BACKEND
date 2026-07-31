@@ -68,6 +68,43 @@ class HomeHero(BaseModel):
     stats: List[HomeHeroStat] = Field(default_factory=list)
 
 
+class ValueItem(BaseModel):
+    """A title/body pair used for about-page values and similar sections."""
+    title: str
+    body: str
+
+
+class TeamTile(BaseModel):
+    """A single tile in the professionals / team section."""
+    image: Optional[str] = None
+    count: str = ""
+    title: str = ""
+    desc: str = ""
+
+
+class CareTeamSlide(BaseModel):
+    """A single slide in the care-team stacked-card carousel."""
+    image: Optional[str] = None
+    eyebrow: str = ""
+    title: str = ""
+    description: str = ""
+    button_text: str = ""
+    button_link: str = "/booking"
+    stats: List[HeroStat] = Field(default_factory=list)
+
+
+class WhyChooseItem(BaseModel):
+    """A single card in the 'Why Choose Nupun' section."""
+    title: str = ""
+    detail: str = ""
+
+
+class LegalSection(BaseModel):
+    """A single section of a legal page (privacy, terms, refund)."""
+    title: str = ""
+    body: str = ""
+
+
 class WebsiteSettings(TimestampedDocument):
     """Global website / brand settings."""
 
@@ -90,6 +127,50 @@ class WebsiteSettings(TimestampedDocument):
 
     services_hero: Optional[ServicesHero] = None
     home_hero: Optional[HomeHero] = None
+
+    # ── Home page hero ──────────────────────────────────────
+    hero_headline: Optional[str] = None
+    hero_subtitle: Optional[str] = None
+    hero_description: Optional[str] = None
+    hero_image: Optional[ImageAsset] = None
+    hero_stats: List[HeroStat] = Field(default_factory=list)
+
+    # ── About page ──────────────────────────────────────────
+    about_hero_badge: Optional[str] = None
+    about_hero_title: Optional[str] = None
+    about_hero_description: Optional[str] = None
+    about_hero_image: Optional[ImageAsset] = None
+    about_hero_stats: List[HeroStat] = Field(default_factory=list)
+    about_story_title: Optional[str] = None
+    about_story_text: Optional[str] = None
+    about_stats: List[HeroStat] = Field(default_factory=list)
+    about_values: List[ValueItem] = Field(default_factory=list)
+    about_commitments: List[str] = Field(default_factory=list)
+    about_welcome_title: Optional[str] = None
+    about_welcome_description: Optional[str] = None
+    about_welcome_image: Optional[ImageAsset] = None
+
+    # ── Reusable content sections ───────────────────────────
+    how_it_works_steps: List[ValueItem] = Field(default_factory=list)
+    team_tiles: List[TeamTile] = Field(default_factory=list)
+    care_team_slides: List[CareTeamSlide] = Field(default_factory=list)
+    trust_bar_items: List[str] = Field(default_factory=list)
+    why_choose_items: List[WhyChooseItem] = Field(default_factory=list)
+    conditions_list: List[str] = Field(default_factory=list)
+
+    # ── Footer ──────────────────────────────────────────────
+    footer_tagline: Optional[str] = None
+    footer_description: Optional[str] = None
+    footer_image: Optional[str] = None
+
+    # ── Contact CTA ─────────────────────────────────────────
+    cta_title: Optional[str] = None
+    cta_description: Optional[str] = None
+
+    # ── Legal pages ─────────────────────────────────────────
+    privacy_sections: List[LegalSection] = Field(default_factory=list)
+    terms_sections: List[LegalSection] = Field(default_factory=list)
+    refund_sections: List[LegalSection] = Field(default_factory=list)
 
     is_active: bool = True
 
