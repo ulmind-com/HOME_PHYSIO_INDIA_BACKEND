@@ -20,6 +20,7 @@ class Category(TimestampedDocument):
     description: str = ""
     icon: Optional[str] = None
     image: Optional[ImageAsset] = None
+    hero_image: Optional[ImageAsset] = None
     order: int = 0
     is_active: bool = True
 

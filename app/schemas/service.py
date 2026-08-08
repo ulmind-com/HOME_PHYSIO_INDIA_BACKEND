@@ -20,6 +20,7 @@ class CategoryCreate(BaseModel):
     description: str = ""
     icon: Optional[str] = None
     image: Optional[ImageAsset] = None
+    hero_image: Optional[ImageAsset] = None
     order: int = 0
     is_active: bool = True
 
@@ -30,6 +31,7 @@ class CategoryUpdate(BaseModel):
     description: Optional[str] = None
     icon: Optional[str] = None
     image: Optional[ImageAsset] = None
+    hero_image: Optional[ImageAsset] = None
     order: Optional[int] = None
     is_active: Optional[bool] = None
 
@@ -40,6 +42,7 @@ class CategoryResponse(IdTimestampSchema):
     description: str
     icon: Optional[str] = None
     image: Optional[ImageAsset] = None
+    hero_image: Optional[ImageAsset] = None
     order: int
     is_active: bool
 
