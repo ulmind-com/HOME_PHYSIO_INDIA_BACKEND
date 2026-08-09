@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi.middleware import SlowAPIMiddleware
 
 from app import __version__
+from app.api.routers import elder_care
 from app.api.v1 import api_router
 from app.config import settings
 from app.core.handlers import register_exception_handlers
@@ -89,6 +90,7 @@ def create_app() -> FastAPI:
     register_exception_handlers(app)
 
     # ---- Routes ----
+    api_router.include_router(elder_care.router, prefix="/elder-care", tags=["elder-care"])
     app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
     @app.get("/", tags=["Health"], summary="Root")

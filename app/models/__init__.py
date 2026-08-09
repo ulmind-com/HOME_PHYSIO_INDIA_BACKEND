@@ -11,6 +11,7 @@ from app.models.career import CareerJob, JobApplication, JobCategory
 from app.models.contact import ContactMessage
 from app.models.equipment import Equipment, EquipmentCategory, EquipmentRental
 from app.models.faq import FAQ
+from app.models.elder_care import ElderCareRequest
 from app.models.notification import Notification
 from app.models.rbac import Permission, Role
 from app.models.service import Category, Service
@@ -41,6 +42,7 @@ ALL_DOCUMENT_MODELS = [
     Video,
     Testimonial,
     FAQ,
+    ElderCareRequest,
     ContactMessage,
     WebsiteSettings,
     SEOSettings,
