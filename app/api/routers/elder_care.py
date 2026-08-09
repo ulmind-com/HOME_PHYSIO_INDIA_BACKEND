@@ -11,17 +11,19 @@ router = APIRouter()
 class ElderCareCreate(BaseModel):
     full_name: str
     phone_number: str
+    city: str
     service_type: str
-    patient_condition: str
-    preferred_duty_hours: str
+    patient_condition: Optional[str] = None
+    preferred_duty_hours: Optional[str] = None
 
 class ElderCareResponse(BaseModel):
     id: str
     full_name: str
     phone_number: str
+    city: str
     service_type: str
-    patient_condition: str
-    preferred_duty_hours: str
+    patient_condition: Optional[str] = None
+    preferred_duty_hours: Optional[str] = None
     status: str
     created_at: str
 
@@ -31,6 +33,7 @@ class ElderCareResponse(BaseModel):
             id=str(doc.id),
             full_name=doc.full_name,
             phone_number=doc.phone_number,
+            city=doc.city,
             service_type=doc.service_type,
             patient_condition=doc.patient_condition,
             preferred_duty_hours=doc.preferred_duty_hours,
@@ -54,6 +57,7 @@ async def create_elder_care_request(req: ElderCareCreate):
     doc = ElderCareRequest(
         full_name=req.full_name,
         phone_number=req.phone_number,
+        city=req.city,
         service_type=req.service_type,
         patient_condition=req.patient_condition,
         preferred_duty_hours=req.preferred_duty_hours,

@@ -7,9 +7,12 @@ class ElderCareRequest(TimestampedDocument):
 
     full_name: str
     phone_number: str
+    city: str
     service_type: str
-    patient_condition: str
-    preferred_duty_hours: str
+    
+    # Optional legacy fields
+    patient_condition: Optional[str] = None
+    preferred_duty_hours: Optional[str] = None
     
     # Status of the request (e.g., pending, in_progress, completed, cancelled)
     status: str = "pending"
