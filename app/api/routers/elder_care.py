@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 
 from app.models.elder_care import ElderCareRequest
-from app.api.deps import current_superuser
+from app.dependencies.auth import require_superuser
 
 router = APIRouter()
 
@@ -70,7 +70,7 @@ async def list_elder_care_requests(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
     status: Optional[str] = None,
-    current_user=Depends(current_superuser),
+    current_user=Depends(require_superuser),
 ):
     """List all elder care requests (Admin)."""
     query = {}
@@ -98,7 +98,7 @@ async def list_elder_care_requests(
 async def update_elder_care_status(
     request_id: str,
     req: ElderCareStatusUpdate,
-    current_user=Depends(current_superuser),
+    current_user=Depends(require_superuser),
 ):
     """Update status of an elder care request (Admin)."""
     doc = await ElderCareRequest.get(request_id)
