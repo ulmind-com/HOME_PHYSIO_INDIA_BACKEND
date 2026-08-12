@@ -103,7 +103,8 @@ class HomeAboutFeature(BaseModel):
     """A single feature item in the Home About section (e.g. ICU at Home)."""
     title: str = ""
     description: str = ""
-    icon: str = "heart-pulse"  # icon key: heart-pulse | shield-check | clock
+    icon: str = "heart-pulse"  # fallback icon key: heart-pulse | shield-check | clock
+    icon_image: Optional[str] = None  # uploaded PNG/image URL (overrides icon key)
 
 
 class HomeAboutTile(BaseModel):
