@@ -6,7 +6,7 @@ configuration). The service layer enforces the singleton semantics.
 
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from pydantic import BaseModel, EmailStr, Field
 
@@ -104,12 +104,12 @@ class HomeAboutFeature(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     icon: Optional[str] = "heart-pulse"  # fallback icon key
-    icon_image: Optional[ImageAsset] = None  # uploaded PNG/image URL (overrides icon key)
+    icon_image: Optional[Union[str, ImageAsset]] = None  # uploaded PNG/image URL (overrides icon key)
 
 
 class HomeAboutTile(BaseModel):
     """A single image card in the Home About section (e.g. 120+ Registered Nurses)."""
-    image: Optional[ImageAsset] = None
+    image: Optional[Union[str, ImageAsset]] = None
     count: Optional[str] = None
     title: Optional[str] = None
     description: Optional[str] = None
