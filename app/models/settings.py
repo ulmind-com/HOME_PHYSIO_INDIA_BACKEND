@@ -99,6 +99,23 @@ class WhyChooseItem(BaseModel):
     detail: str = ""
 
 
+class HomeAboutFeature(BaseModel):
+    """A single feature item in the Home About section (e.g. ICU at Home)."""
+    title: str = ""
+    description: str = ""
+    icon: str = "heart-pulse"  # icon key: heart-pulse | shield-check | clock
+
+
+class HomeAboutTile(BaseModel):
+    """A single image card in the Home About section (e.g. 120+ Registered Nurses)."""
+    image: Optional[str] = None
+    count: str = ""
+    title: str = ""
+    description: str = ""
+    cta_label: str = ""
+    cta_link: str = "/booking"
+
+
 class LegalSection(BaseModel):
     """A single section of a legal page (privacy, terms, refund)."""
     title: str = ""
@@ -149,6 +166,12 @@ class WebsiteSettings(TimestampedDocument):
     about_welcome_title: Optional[str] = None
     about_welcome_description: Optional[str] = None
     about_welcome_image: Optional[ImageAsset] = None
+
+    # ── Home About section ───────────────────────────────────
+    home_about_heading: Optional[str] = None
+    home_about_description: Optional[str] = None
+    home_about_features: List[HomeAboutFeature] = Field(default_factory=list)
+    home_about_tiles: List[HomeAboutTile] = Field(default_factory=list)
 
     # ── Reusable content sections ───────────────────────────
     how_it_works_steps: List[ValueItem] = Field(default_factory=list)

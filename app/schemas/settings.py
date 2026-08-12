@@ -9,6 +9,8 @@ from pydantic import BaseModel, EmailStr, Field
 from app.models.base import ImageAsset
 from app.models.settings import (
     CareTeamSlide,
+    HomeAboutFeature,
+    HomeAboutTile,
     HomeHero,
     LegalSection,
     ServicesHero,
@@ -62,6 +64,12 @@ class WebsiteSettingsUpdate(BaseModel):
     about_welcome_title: Optional[str] = None
     about_welcome_description: Optional[str] = None
     about_welcome_image: Optional[ImageAsset] = None
+
+    # Home About section
+    home_about_heading: Optional[str] = None
+    home_about_description: Optional[str] = None
+    home_about_features: Optional[List[HomeAboutFeature]] = None
+    home_about_tiles: Optional[List[HomeAboutTile]] = None
 
     # Content sections
     how_it_works_steps: Optional[List[ValueItem]] = None
@@ -124,6 +132,12 @@ class WebsiteSettingsResponse(IdTimestampSchema):
     about_welcome_title: Optional[str] = None
     about_welcome_description: Optional[str] = None
     about_welcome_image: Optional[ImageAsset] = None
+
+    # Home About section
+    home_about_heading: Optional[str] = None
+    home_about_description: Optional[str] = None
+    home_about_features: List[HomeAboutFeature] = Field(default_factory=list)
+    home_about_tiles: List[HomeAboutTile] = Field(default_factory=list)
 
     # Content sections
     how_it_works_steps: List[ValueItem] = Field(default_factory=list)
