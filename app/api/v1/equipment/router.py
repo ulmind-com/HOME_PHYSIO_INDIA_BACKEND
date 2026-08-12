@@ -96,11 +96,14 @@ async def create_rental(
     background_tasks: BackgroundTasks,
 ) -> dict:
     """Public endpoint: submit an equipment rental request."""
-    equipment = await _equipment.repo.get(payload.equipment_id)
-    if equipment is None:
-        from app.core.exceptions import NotFoundException
+    eq_name = payload.equipment_name or "Unknown Equipment"
+    eq_id = payload.equipment_id or ""
 
-        raise NotFoundException("Equipment not found")
+    if payload.equipment_id:
+        equipment = await _equipment.repo.get(payload.equipment_id)
+        if equipment:
+            eq_name = equipment.name
+            eq_id = str(equipment.id)
 
     duration_days = None
     if payload.end_date:
@@ -108,8 +111,8 @@ async def create_rental(
 
     rental = EquipmentRental(
         reference=generate_reference("NHR"),
-        equipment_id=str(equipment.id),
-        equipment_name=equipment.name,
+        equipment_id=eq_id,
+        equipment_name=eq_name,
         customer_name=payload.customer_name,
         customer_phone=payload.customer_phone,
         customer_email=payload.customer_email,

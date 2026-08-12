@@ -118,7 +118,8 @@ class EquipmentResponse(IdTimestampSchema):
 
 
 class RentalCreate(BaseModel):
-    equipment_id: str
+    equipment_id: Optional[str] = None
+    equipment_name: Optional[str] = None
     customer_name: str = Field(..., min_length=2, max_length=120)
     customer_phone: str = Field(..., min_length=6, max_length=20)
     customer_email: Optional[EmailStr] = None
