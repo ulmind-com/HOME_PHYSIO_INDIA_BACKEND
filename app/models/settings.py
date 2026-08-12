@@ -101,20 +101,20 @@ class WhyChooseItem(BaseModel):
 
 class HomeAboutFeature(BaseModel):
     """A single feature item in the Home About section (e.g. ICU at Home)."""
-    title: str = ""
-    description: str = ""
-    icon: str = "heart-pulse"  # fallback icon key: heart-pulse | shield-check | clock
-    icon_image: Optional[str] = None  # uploaded PNG/image URL (overrides icon key)
+    title: Optional[str] = None
+    description: Optional[str] = None
+    icon: Optional[str] = "heart-pulse"  # fallback icon key
+    icon_image: Optional[ImageAsset] = None  # uploaded PNG/image URL (overrides icon key)
 
 
 class HomeAboutTile(BaseModel):
     """A single image card in the Home About section (e.g. 120+ Registered Nurses)."""
-    image: Optional[str] = None
-    count: str = ""
-    title: str = ""
-    description: str = ""
-    cta_label: str = ""
-    cta_link: str = "/booking"
+    image: Optional[ImageAsset] = None
+    count: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    cta_label: Optional[str] = None
+    cta_link: Optional[str] = "/booking"
 
 
 class LegalSection(BaseModel):
