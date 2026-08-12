@@ -70,8 +70,8 @@ class HomeHero(BaseModel):
 
 class ValueItem(BaseModel):
     """A title/body pair used for about-page values and similar sections."""
-    title: str
-    body: str
+    title: Optional[str] = ""
+    body: Optional[str] = ""
 
 
 class TeamTile(BaseModel):
@@ -119,8 +119,8 @@ class HomeAboutTile(BaseModel):
 
 class LegalSection(BaseModel):
     """A single section of a legal page (privacy, terms, refund)."""
-    title: str = ""
-    body: str = ""
+    title: Optional[str] = ""
+    body: Optional[str] = ""
 
 
 class WebsiteSettings(TimestampedDocument):
