@@ -5,6 +5,8 @@ from typing import List, Optional
 
 from app.models.elder_care import ElderCareRequest
 from app.dependencies.auth import require_superuser
+from app.services.notification_service import notification_service
+from app.models.enums import NotificationType
 
 router = APIRouter()
 
@@ -63,6 +65,12 @@ async def create_elder_care_request(req: ElderCareCreate):
         preferred_duty_hours=req.preferred_duty_hours,
     )
     await doc.insert()
+    await notification_service.create(
+        title="New elder care request",
+        message=f"{doc.full_name} requested {doc.service_type}",
+        type=NotificationType.BOOKING,
+        reference_id=str(doc.id),
+    )
     return ElderCareResponse.from_doc(doc)
 
 @router.get("", response_model=ElderCareListResponse)
