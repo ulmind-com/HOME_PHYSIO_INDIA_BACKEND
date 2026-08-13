@@ -68,6 +68,7 @@ class Booking(TimestampedDocument):
     assigned_staff_name: Optional[str] = None
     admin_notes: Optional[str] = None
     message: Optional[str] = None
+    source: Optional[str] = None
 
     class Settings:
         name = "bookings"

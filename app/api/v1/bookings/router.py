@@ -53,12 +53,14 @@ async def list_bookings(
     service_id: Optional[str] = Query(None),
     date_from: Optional[str] = Query(None, description="ISO date lower bound"),
     date_to: Optional[str] = Query(None, description="ISO date upper bound"),
+    source: Optional[str] = Query(None, description="Filter by source"),
     _: ActorContext = Depends(require_permission("bookings", "view")),
 ) -> dict:
     items, total = await booking_service.paginate(
         page=params.page, page_size=params.page_size, search=params.search,
         sort_by=params.sort_by, sort_order=params.sort_direction,
         status=status, service_id=service_id, date_from=date_from, date_to=date_to,
+        source=source,
     )
     return paginated_response(BookingResponse, items, total, params)
 
@@ -66,9 +68,10 @@ async def list_bookings(
 @router.get("/export", summary="Export bookings as CSV")
 async def export_bookings(
     status: Optional[BookingStatus] = Query(None),
+    source: Optional[str] = Query(None),
     _: ActorContext = Depends(require_permission("bookings", "view")),
 ) -> StreamingResponse:
-    csv_data = await booking_service.export_csv(status)
+    csv_data = await booking_service.export_csv(status=status, source=source)
     return StreamingResponse(
         iter([csv_data]),
         media_type="text/csv",

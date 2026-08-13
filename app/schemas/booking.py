@@ -35,6 +35,7 @@ class BookingCreate(BaseModel):
     emergency_contact_phone: Optional[str] = None
 
     message: Optional[str] = None
+    source: Optional[str] = None
 
 
 class BookingUpdate(BaseModel):
@@ -91,3 +92,4 @@ class BookingResponse(IdTimestampSchema):
     assigned_staff_name: Optional[str] = None
     admin_notes: Optional[str] = None
     message: Optional[str] = None
+    source: Optional[str] = None

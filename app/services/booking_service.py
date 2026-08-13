@@ -118,12 +118,15 @@ class BookingService:
         service_id: Optional[str] = None,
         date_from: Optional[str] = None,
         date_to: Optional[str] = None,
+        source: Optional[str] = None,
     ) -> Tuple[List[Booking], int]:
         filters: Dict[str, Any] = {}
         if status:
             filters["status"] = status
         if service_id:
             filters["service_id"] = service_id
+        if source:
+            filters["source"] = source
         date_filter: Dict[str, Any] = {}
         if date_from:
             date_filter["$gte"] = date_from
@@ -136,9 +139,13 @@ class BookingService:
             search=search, sort_by=sort_by or "created_at", sort_order=sort_order,
         )
 
-    async def export_csv(self, status: Optional[str] = None) -> str:
+    async def export_csv(self, status: Optional[str] = None, source: Optional[str] = None) -> str:
         """Export bookings as a CSV string."""
-        filters = {"status": status} if status else None
+        filters = {}
+        if status:
+            filters["status"] = status
+        if source:
+            filters["source"] = source
         bookings = await self.repo.list(
             filters=filters, sort=[("created_at", -1)], limit=5000
         )
