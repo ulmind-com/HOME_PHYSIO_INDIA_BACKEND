@@ -61,6 +61,7 @@ class WebsiteSettingsUpdate(BaseModel):
     about_stats: Optional[List[HeroStat]] = None
     about_values: Optional[List[ValueItem]] = None
     about_commitments: Optional[List[str]] = None
+    commitment_image: Optional[ImageAsset] = None
     about_welcome_title: Optional[str] = None
     about_welcome_description: Optional[str] = None
     about_welcome_image: Optional[ImageAsset] = None
@@ -129,6 +130,7 @@ class WebsiteSettingsResponse(IdTimestampSchema):
     about_stats: List[HeroStat] = Field(default_factory=list)
     about_values: List[ValueItem] = Field(default_factory=list)
     about_commitments: List[str] = Field(default_factory=list)
+    commitment_image: Optional[ImageAsset] = None
     about_welcome_title: Optional[str] = None
     about_welcome_description: Optional[str] = None
     about_welcome_image: Optional[ImageAsset] = None

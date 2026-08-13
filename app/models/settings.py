@@ -164,6 +164,7 @@ class WebsiteSettings(TimestampedDocument):
     about_stats: List[HeroStat] = Field(default_factory=list)
     about_values: List[ValueItem] = Field(default_factory=list)
     about_commitments: List[str] = Field(default_factory=list)
+    commitment_image: Optional[ImageAsset] = None
     about_welcome_title: Optional[str] = None
     about_welcome_description: Optional[str] = None
     about_welcome_image: Optional[ImageAsset] = None
