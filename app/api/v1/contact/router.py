@@ -46,7 +46,8 @@ async def create_contact(
         name=sanitize_str(payload.name),
         email=payload.email,
         phone=sanitize_str(payload.phone),
-        subject=sanitize_str(payload.subject),
+        service_required=sanitize_str(payload.service_required),
+        patient_location=sanitize_str(payload.patient_location),
         message=sanitize_str(payload.message, collapse_whitespace=False),
         ip_address=_client_ip(request),
     )
@@ -54,20 +55,22 @@ async def create_contact(
 
     await notification_service.create(
         title="New contact message",
-        message=f"{message.name}: {message.subject or 'No subject'}",
+        message=f"{message.name}: {message.service_required or 'General Enquiry'}",
         type=NotificationType.CONTACT,
         reference_id=str(message.id),
     )
     # Confirmation to sender + notification to admin (non-blocking).
-    background_tasks.add_task(
-        email_service.send_contact_confirmation,
-        message.email,
-        {"name": message.name, "message": message.message},
-    )
+    if message.email:
+        background_tasks.add_task(
+            email_service.send_contact_confirmation,
+            message.email,
+            {"name": message.name, "message": message.message},
+        )
     background_tasks.add_task(
         email_service.send_admin_notification,
         "New Contact Message",
-        f"<p><b>{message.name}</b> ({message.email}) wrote:</p>"
+        f"<p><b>{message.name}</b> (Phone: {message.phone}) wrote:</p>"
+        f"<p>Service: {message.service_required or 'N/A'}<br/>Location: {message.patient_location or 'N/A'}</p>"
         f"<blockquote>{message.message}</blockquote>",
     )
     return item_response(ContactResponse, message, "Message sent successfully")
@@ -115,6 +118,9 @@ async def update_contact(
         description=f"Contact marked {payload.status}",
         ip_address=actor.ip_address, user_agent=actor.user_agent,
     )
+    
+    if payload.status != ContactStatus.NEW:
+        await notification_service.mark_read_by_reference(contact_id)
     return item_response(ContactResponse, doc, "Message updated")
 
 

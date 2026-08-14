@@ -79,6 +79,9 @@ class BookingService:
         booking.touch()
         await booking.save()
 
+        if booking.status != BookingStatus.PENDING:
+            await notification_service.mark_read_by_reference(str(booking.id))
+
         action_map = {
             BookingStatus.APPROVED: ActivityAction.APPROVE,
             BookingStatus.REJECTED: ActivityAction.REJECT,

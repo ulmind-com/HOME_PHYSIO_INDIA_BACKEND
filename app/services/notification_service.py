@@ -89,6 +89,14 @@ class NotificationService:
         ).update({"$set": {"is_read": True, "read_at": now, "updated_at": now}})
         return getattr(result, "modified_count", 0)
 
+    async def mark_read_by_reference(self, reference_id: str) -> int:
+        """Mark all notifications for a specific entity reference as read."""
+        now = dt.datetime.now(dt.timezone.utc)
+        result = await Notification.find(
+            {"reference_id": reference_id, "is_read": False}
+        ).update({"$set": {"is_read": True, "read_at": now, "updated_at": now}})
+        return getattr(result, "modified_count", 0)
+
     async def delete(self, notification_id: str) -> None:
         """Delete a notification."""
         deleted = await self.repo.delete_by_id(notification_id)

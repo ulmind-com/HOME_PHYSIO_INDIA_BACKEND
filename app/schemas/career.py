@@ -6,7 +6,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel, EmailStr, Field
 
-from app.models.base import SEOMeta
+from app.models.base import FileAsset, SEOMeta
 from app.models.enums import ApplicationStatus, ContentStatus, JobType
 from app.schemas.common import IdTimestampSchema
 
@@ -114,7 +114,13 @@ class ApplicationResponse(IdTimestampSchema):
     email: EmailStr
     phone: str
     experience: Optional[str] = None
+    preferred_location: Optional[str] = None
+    qualification: Optional[str] = None
+    preferred_duty: Optional[str] = None
+    previous_employer: Optional[str] = None
+    relevant_skills: Optional[str] = None
+    certificates: Optional[str] = None
     cover_letter: Optional[str] = None
-    resume: Optional[dict] = None
+    resume: Optional[FileAsset] = None
     status: ApplicationStatus
     admin_notes: Optional[str] = None

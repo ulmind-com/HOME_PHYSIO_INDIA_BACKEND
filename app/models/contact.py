@@ -15,9 +15,11 @@ class ContactMessage(TimestampedDocument):
     """A message submitted through the public contact form."""
 
     name: str
-    email: EmailStr
-    phone: Optional[str] = None
+    phone: str
+    email: Optional[EmailStr] = None
     subject: Optional[str] = None
+    service_required: Optional[str] = None
+    patient_location: Optional[str] = None
     message: str
 
     status: ContactStatus = ContactStatus.NEW

@@ -72,6 +72,12 @@ class JobApplication(TimestampedDocument):
     email: EmailStr
     phone: str
     experience: Optional[str] = None
+    preferred_location: Optional[str] = None
+    qualification: Optional[str] = None
+    preferred_duty: Optional[str] = None
+    previous_employer: Optional[str] = None
+    relevant_skills: Optional[str] = None
+    certificates: Optional[str] = None
     cover_letter: Optional[str] = None
     resume: Optional[FileAsset] = None
 

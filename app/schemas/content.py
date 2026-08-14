@@ -124,9 +124,10 @@ class FAQResponse(IdTimestampSchema):
 
 class ContactCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=120)
-    email: EmailStr
-    phone: Optional[str] = Field(None, max_length=20)
-    subject: Optional[str] = Field(None, max_length=200)
+    phone: str = Field(..., max_length=20)
+    email: Optional[EmailStr] = None
+    service_required: Optional[str] = Field(None, max_length=100)
+    patient_location: Optional[str] = Field(None, max_length=200)
     message: str = Field(..., min_length=2, max_length=5000)
 
 
@@ -137,9 +138,10 @@ class ContactStatusUpdate(BaseModel):
 
 class ContactResponse(IdTimestampSchema):
     name: str
-    email: EmailStr
-    phone: Optional[str] = None
-    subject: Optional[str] = None
+    phone: str
+    email: Optional[EmailStr] = None
+    service_required: Optional[str] = None
+    patient_location: Optional[str] = None
     message: str
     status: ContactStatus
     admin_notes: Optional[str] = None

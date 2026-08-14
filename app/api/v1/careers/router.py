@@ -10,11 +10,16 @@ from fastapi import (
     Depends,
     Form,
     Query,
+    Request,
+    Response,
     UploadFile,
 )
+from pydantic import EmailStr, TypeAdapter, ValidationError
 
 from app.api.helpers import item_response, paginated_response
-from app.core.exceptions import NotFoundException
+from app.config import settings
+from app.core.exceptions import BadRequestException, NotFoundException
+from app.core.limiter import limiter
 from app.core.pagination import PaginationParams, pagination_params
 from app.core.responses import success_response
 from app.dependencies.auth import ActorContext, require_permission
@@ -41,10 +46,13 @@ from app.services.crud import CrudService
 from app.services.email_service import email_service
 from app.services.notification_service import notification_service
 from app.services.cloudinary_service import cloudinary_service
-from app.utils.files import DOC_TYPES, MAX_FILE_BYTES, read_validated_upload
+from app.utils.files import MAX_FILE_BYTES, read_validated_document
 from app.utils.references import generate_reference
+from app.utils.sanitize import sanitize_str
 
 router = APIRouter(prefix="/careers", tags=["Careers"])
+
+_email_validator = TypeAdapter(EmailStr)
 
 _job = CrudService(
     CareerJob, entity="careers", search_fields=("title", "description"),
@@ -100,21 +108,40 @@ async def delete_category(
 
 
 @router.post("/applications", status_code=201, summary="Apply to a job (public)")
+@limiter.limit(settings.RATE_LIMIT_AUTH)
 async def create_application(
+    request: Request,
+    response: Response,
     background_tasks: BackgroundTasks,
-    job_id: Optional[str] = Form(None),
-    job_title: str = Form(...),
-    full_name: str = Form(...),
-    email: str = Form(...),
-    phone: str = Form(...),
-    experience: Optional[str] = Form(None),
-    cover_letter: Optional[str] = Form(None),
+    job_id: Optional[str] = Form(None, max_length=64),
+    job_title: str = Form(..., min_length=1, max_length=200),
+    full_name: str = Form(..., min_length=1, max_length=120),
+    email: str = Form(..., max_length=254),
+    phone: str = Form(..., min_length=3, max_length=30),
+    experience: Optional[str] = Form(None, max_length=100),
+    preferred_location: Optional[str] = Form(None, max_length=200),
+    qualification: Optional[str] = Form(None, max_length=200),
+    preferred_duty: Optional[str] = Form(None, max_length=100),
+    previous_employer: Optional[str] = Form(None, max_length=200),
+    relevant_skills: Optional[str] = Form(None, max_length=2000),
+    certificates: Optional[str] = Form(None, max_length=1000),
+    cover_letter: Optional[str] = Form(None, max_length=5000),
     resume: Optional[UploadFile] = None,
 ) -> dict:
-    """Public endpoint: submit a job application with an optional resume file."""
+    """Public endpoint: submit a job application with an optional resume file.
+
+    Hardened against abuse: IP rate-limited, all free-text fields are sanitised
+    (blocking stored-XSS), the email is format-validated, and the resume is
+    checked by extension, MIME type, size and real file signature.
+    """
+    try:
+        email = _email_validator.validate_python(email.strip())
+    except ValidationError:
+        raise BadRequestException("A valid email address is required")
+
     resume_asset = None
     if resume is not None:
-        contents = await read_validated_upload(resume, DOC_TYPES, MAX_FILE_BYTES)
+        contents = await read_validated_document(resume, MAX_FILE_BYTES)
         file_asset = await cloudinary_service.upload_file(
             contents,
             folder="nupun/resumes",
@@ -125,13 +152,19 @@ async def create_application(
 
     application = JobApplication(
         reference=generate_reference("NHA"),
-        job_id=job_id,
-        job_title=job_title,
-        full_name=full_name,
+        job_id=sanitize_str(job_id),
+        job_title=sanitize_str(job_title),
+        full_name=sanitize_str(full_name),
         email=email,
-        phone=phone,
-        experience=experience,
-        cover_letter=cover_letter,
+        phone=sanitize_str(phone),
+        experience=sanitize_str(experience),
+        preferred_location=sanitize_str(preferred_location),
+        qualification=sanitize_str(qualification),
+        preferred_duty=sanitize_str(preferred_duty),
+        previous_employer=sanitize_str(previous_employer),
+        relevant_skills=sanitize_str(relevant_skills),
+        certificates=sanitize_str(certificates),
+        cover_letter=sanitize_str(cover_letter, collapse_whitespace=False),
         resume=resume_asset,
     )
     await _applications.create(application)
