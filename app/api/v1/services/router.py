@@ -39,12 +39,24 @@ _category = CrudService(
 
 
 @router.get("/categories", summary="List service categories")
-async def list_categories(active_only: bool = Query(True)) -> dict:
-    """Public list of service categories, ordered by ``order``."""
-    filters = {"is_active": True} if active_only else None
-    items = await _category.repo.list(filters=filters, sort=[("order", 1)])
-    data = [CategoryResponse.model_validate(c).model_dump(mode="json") for c in items]
-    return success_response(data=data, message="Categories fetched")
+async def list_categories(
+    params: PaginationParams = Depends(pagination_params),
+    active_only: Optional[bool] = Query(None),
+) -> dict:
+    """Paginated list of service categories, ordered by ``order``."""
+    filters: dict = {}
+    if active_only is True:
+        filters["is_active"] = True
+
+    items, total = await _category.paginate(
+        page=params.page,
+        page_size=params.page_size,
+        search=params.search,
+        sort_by=params.sort_by or "order",
+        sort_order=params.sort_direction,
+        filters=filters or None,
+    )
+    return paginated_response(CategoryResponse, items, total, params)
 
 
 @router.post("/categories", status_code=201, summary="Create service category")

@@ -133,6 +133,7 @@ class WebsiteSettings(TimestampedDocument):
 
     theme_primary: Optional[str] = None
     theme_accent: Optional[str] = None
+    font_family: Optional[str] = None
 
     email: Optional[EmailStr] = None
     phone: Optional[str] = None

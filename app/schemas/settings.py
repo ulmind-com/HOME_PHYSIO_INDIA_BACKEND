@@ -33,6 +33,7 @@ class WebsiteSettingsUpdate(BaseModel):
     favicon: Optional[ImageAsset] = None
     theme_primary: Optional[str] = None
     theme_accent: Optional[str] = None
+    font_family: Optional[str] = None
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
     whatsapp: Optional[str] = None
@@ -102,6 +103,7 @@ class WebsiteSettingsResponse(IdTimestampSchema):
     favicon: Optional[ImageAsset] = None
     theme_primary: Optional[str] = None
     theme_accent: Optional[str] = None
+    font_family: Optional[str] = None
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
     whatsapp: Optional[str] = None
