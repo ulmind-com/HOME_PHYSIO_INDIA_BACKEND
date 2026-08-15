@@ -14,11 +14,11 @@ from app.schemas.common import IdTimestampSchema
 class BookingCreate(BaseModel):
     """Public booking submission payload."""
 
-    patient_name: str = Field(..., min_length=2, max_length=120)
+    patient_name: str = Field(..., min_length=2, max_length=120, pattern=r"^[^<>]+$")
     patient_age: Optional[int] = Field(None, ge=0, le=130)
     patient_gender: Optional[Gender] = None
 
-    contact_phone: str = Field(..., min_length=6, max_length=20)
+    contact_phone: str = Field(..., min_length=6, max_length=20, pattern=r"^\+?[0-9\-\s\(\)]+$")
     contact_email: Optional[EmailStr] = None
 
     service_id: Optional[str] = None
@@ -34,7 +34,7 @@ class BookingCreate(BaseModel):
     emergency_contact_name: Optional[str] = None
     emergency_contact_phone: Optional[str] = None
 
-    message: Optional[str] = None
+    message: Optional[str] = Field(None, pattern=r"^[^<>]*$")
     source: Optional[str] = None
 
 

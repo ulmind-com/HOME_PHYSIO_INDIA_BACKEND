@@ -78,7 +78,7 @@ class Settings(BaseSettings):
     # ---- Bootstrap admin ----
     FIRST_ADMIN_NAME: str = "Super Admin"
     FIRST_ADMIN_EMAIL: str = "admin@nupunhealth.com"
-    FIRST_ADMIN_PASSWORD: str = "Admin@12345"
+    FIRST_ADMIN_PASSWORD: str = "Admin@1234Secure!"
 
     @property
     def cors_origins(self) -> List[str]:

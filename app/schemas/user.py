@@ -5,7 +5,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import List, Optional
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.models.base import ImageAsset
 from app.schemas.common import IdTimestampSchema
@@ -22,6 +22,20 @@ class UserCreate(BaseModel):
     extra_permissions: List[str] = Field(default_factory=list)
     is_active: bool = True
     is_superuser: bool = False
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        import re
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not re.search(r"\d", v):
+            raise ValueError("Password must contain at least one number")
+        if not re.search(r"[\W_]", v):
+            raise ValueError("Password must contain at least one special character")
+        return v
 
 
 class UserUpdate(BaseModel):

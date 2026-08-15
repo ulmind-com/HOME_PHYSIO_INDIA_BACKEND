@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
 from fastapi.responses import StreamingResponse
 
 from app.api.helpers import item_response, paginated_response
+from app.config import settings
+from app.core.limiter import limiter
 from app.core.pagination import PaginationParams, pagination_params
 from app.core.responses import success_response
 from app.dependencies.auth import ActorContext, require_permission
@@ -26,7 +28,9 @@ router = APIRouter(prefix="/bookings", tags=["Bookings"])
 
 
 @router.post("", status_code=201, summary="Create booking (public)")
+@limiter.limit(settings.RATE_LIMIT_DEFAULT)
 async def create_booking(
+    request: Request,
     payload: BookingCreate,
     background_tasks: BackgroundTasks,
 ) -> dict:

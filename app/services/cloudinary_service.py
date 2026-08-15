@@ -52,6 +52,7 @@ class CloudinaryService:
             folder=folder,
             public_id=public_id,
             resource_type="image",
+            allowed_formats=["jpg", "png", "webp", "gif", "jpeg"],
             transformation=[{"quality": "auto", "fetch_format": "auto"}],
         )
         return ImageAsset(
@@ -76,6 +77,7 @@ class CloudinaryService:
             folder=folder,
             public_id=public_id,
             resource_type=resource_type,
+            allowed_formats=["pdf", "doc", "docx", "mp4", "webm", "mov", "avi", "qt"],
         )
         return FileAsset(
             url=result["secure_url"],

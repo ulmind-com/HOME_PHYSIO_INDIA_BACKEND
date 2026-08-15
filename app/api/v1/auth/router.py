@@ -83,7 +83,9 @@ async def logout(
 
 
 @router.post("/change-password", summary="Change password")
+@limiter.limit(settings.RATE_LIMIT_AUTH)
 async def change_password(
+    request: Request,
     payload: ChangePasswordRequest,
     actor: ActorContext = Depends(get_actor),
 ) -> dict:
@@ -110,7 +112,8 @@ async def forgot_password(
 
 
 @router.post("/reset-password", summary="Reset password with token")
-async def reset_password(payload: ResetPasswordRequest) -> dict:
+@limiter.limit(settings.RATE_LIMIT_AUTH)
+async def reset_password(request: Request, payload: ResetPasswordRequest) -> dict:
     """Complete a password reset using the emailed token."""
     await auth_service.reset_password(payload.token, payload.new_password)
     return success_response(message="Password has been reset successfully")

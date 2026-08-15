@@ -17,6 +17,7 @@ from app.utils.files import (
     MAX_VIDEO_BYTES,
     VIDEO_TYPES,
     read_validated_upload,
+    read_validated_image,
 )
 
 router = APIRouter(prefix="/uploads", tags=["Uploads"])
@@ -28,7 +29,7 @@ async def upload_image(
     folder: str = Form("nupun/images"),
     actor: ActorContext = Depends(require_permission("media", "create")),
 ) -> dict:
-    contents = await read_validated_upload(file, IMAGE_TYPES, MAX_IMAGE_BYTES)
+    contents = await read_validated_image(file, MAX_IMAGE_BYTES)
     asset = await cloudinary_service.upload_image(contents, folder=folder)
     await activity_service.log(
         ActivityAction.UPLOAD, "media", user_id=actor.user_id,

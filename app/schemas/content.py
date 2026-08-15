@@ -123,12 +123,12 @@ class FAQResponse(IdTimestampSchema):
 
 
 class ContactCreate(BaseModel):
-    name: str = Field(..., min_length=2, max_length=120)
-    phone: str = Field(..., max_length=20)
+    name: str = Field(..., min_length=2, max_length=120, pattern=r"^[^<>]+$")
+    phone: str = Field(..., max_length=20, pattern=r"^\+?[0-9\-\s\(\)]+$")
     email: Optional[EmailStr] = None
-    service_required: Optional[str] = Field(None, max_length=100)
-    patient_location: Optional[str] = Field(None, max_length=200)
-    message: str = Field(..., min_length=2, max_length=5000)
+    service_required: Optional[str] = Field(None, max_length=100, pattern=r"^[^<>]*$")
+    patient_location: Optional[str] = Field(None, max_length=200, pattern=r"^[^<>]*$")
+    message: str = Field(..., min_length=2, max_length=5000, pattern=r"^[^<>]+$")
 
 
 class ContactStatusUpdate(BaseModel):
