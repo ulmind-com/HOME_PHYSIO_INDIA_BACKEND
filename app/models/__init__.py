@@ -16,6 +16,7 @@ from app.models.notification import Notification
 from app.models.rbac import Permission, Role
 from app.models.service import Category, Service
 from app.models.settings import SEOSettings, SocialLinks, WebsiteSettings
+from app.models.staff import StaffMember
 from app.models.testimonial import Testimonial
 from app.models.token import RefreshToken
 from app.models.user import AdminSession, User
@@ -41,6 +42,7 @@ ALL_DOCUMENT_MODELS = [
     BlogCategory,
     Video,
     Testimonial,
+    StaffMember,
     FAQ,
     ElderCareRequest,
     ContactMessage,
@@ -72,6 +74,7 @@ __all__ = [
     "BlogCategory",
     "Video",
     "Testimonial",
+    "StaffMember",
     "FAQ",
     "ContactMessage",
     "WebsiteSettings",
