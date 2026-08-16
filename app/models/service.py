@@ -9,6 +9,7 @@ from beanie import Indexed
 from pydantic import Field
 
 from app.models.base import ImageAsset, SEOMeta, TimestampedDocument
+from app.models.settings import HeroStat
 from app.models.enums import ContentStatus
 
 
@@ -20,7 +21,18 @@ class Category(TimestampedDocument):
     description: str = ""
     icon: Optional[str] = None
     image: Optional[ImageAsset] = None
-    hero_image: Optional[ImageAsset] = None
+    
+    # Hero Section
+    hero_badge: Optional[str] = None
+    hero_title: Optional[str] = None
+    hero_description: Optional[str] = None
+    hero_cta_primary_text: Optional[str] = None
+    hero_cta_secondary_text: Optional[str] = None
+    hero_image: Optional[ImageAsset] = None # Keeping for backwards compatibility/fallback
+    hero_images: List[ImageAsset] = Field(default_factory=list)
+    hero_images_mobile: List[ImageAsset] = Field(default_factory=list)
+    hero_stats: List[HeroStat] = Field(default_factory=list)
+
     order: int = 0
     is_active: bool = True
 

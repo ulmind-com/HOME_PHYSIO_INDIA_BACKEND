@@ -7,6 +7,7 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 from app.models.base import ImageAsset, SEOMeta
+from app.models.settings import HeroStat
 from app.models.enums import ContentStatus
 from app.schemas.common import IdTimestampSchema
 
@@ -21,6 +22,14 @@ class CategoryCreate(BaseModel):
     icon: Optional[str] = None
     image: Optional[ImageAsset] = None
     hero_image: Optional[ImageAsset] = None
+    hero_badge: Optional[str] = None
+    hero_title: Optional[str] = None
+    hero_description: Optional[str] = None
+    hero_cta_primary_text: Optional[str] = None
+    hero_cta_secondary_text: Optional[str] = None
+    hero_images: List[ImageAsset] = Field(default_factory=list)
+    hero_images_mobile: List[ImageAsset] = Field(default_factory=list)
+    hero_stats: List[HeroStat] = Field(default_factory=list)
     order: int = 0
     is_active: bool = True
 
@@ -32,6 +41,14 @@ class CategoryUpdate(BaseModel):
     icon: Optional[str] = None
     image: Optional[ImageAsset] = None
     hero_image: Optional[ImageAsset] = None
+    hero_badge: Optional[str] = None
+    hero_title: Optional[str] = None
+    hero_description: Optional[str] = None
+    hero_cta_primary_text: Optional[str] = None
+    hero_cta_secondary_text: Optional[str] = None
+    hero_images: Optional[List[ImageAsset]] = None
+    hero_images_mobile: Optional[List[ImageAsset]] = None
+    hero_stats: Optional[List[HeroStat]] = None
     order: Optional[int] = None
     is_active: Optional[bool] = None
 
@@ -43,6 +60,14 @@ class CategoryResponse(IdTimestampSchema):
     icon: Optional[str] = None
     image: Optional[ImageAsset] = None
     hero_image: Optional[ImageAsset] = None
+    hero_badge: Optional[str] = None
+    hero_title: Optional[str] = None
+    hero_description: Optional[str] = None
+    hero_cta_primary_text: Optional[str] = None
+    hero_cta_secondary_text: Optional[str] = None
+    hero_images: List[ImageAsset] = Field(default_factory=list)
+    hero_images_mobile: List[ImageAsset] = Field(default_factory=list)
+    hero_stats: List[HeroStat] = Field(default_factory=list)
     order: int
     is_active: bool
 

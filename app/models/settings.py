@@ -36,7 +36,8 @@ class HeroSlide(BaseModel):
     subtitle: Optional[str] = None
     button_text: Optional[str] = None
     button_link: Optional[str] = None
-    background_image: Optional[ImageAsset] = None
+    image_desktop: Optional[ImageAsset] = None
+    image_mobile: Optional[ImageAsset] = None
     order: int = 0
 
 
@@ -65,6 +66,7 @@ class HomeHero(BaseModel):
     trust_badge_quote: Optional[str] = '"Their nursing staff is extremely professional and compassionate. Highly recommended!"'
     trust_badge_avatars: List[ImageAsset] = Field(default_factory=list)
     slider_images: List[ImageAsset] = Field(default_factory=list)
+    slider_images_mobile: List[ImageAsset] = Field(default_factory=list)
     stats: List[HomeHeroStat] = Field(default_factory=list)
 
 
@@ -99,6 +101,21 @@ class WhyChooseItem(BaseModel):
     detail: str = ""
 
 
+class CommitmentItem(BaseModel):
+    """A single item in the 'Our Commitment to Excellence' grid."""
+    icon: str = "default"
+    text: str = ""
+
+
+class FounderCard(BaseModel):
+    """A founder/co-founder card on the About page."""
+    name: str = ""
+    role: str = ""
+    image: Optional[ImageAsset] = None
+    description: str = ""
+    address: Optional[str] = None
+
+
 class HomeAboutFeature(BaseModel):
     """A single feature item in the Home About section (e.g. ICU at Home)."""
     title: Optional[str] = None
@@ -115,6 +132,19 @@ class HomeAboutTile(BaseModel):
     description: Optional[str] = None
     cta_label: Optional[str] = None
     cta_link: Optional[str] = "/booking"
+
+
+class ComprehensiveServiceCard(BaseModel):
+    """A single card in the 'Our Comprehensive Services' homepage section."""
+    id: Optional[str] = None
+    title: str = ""
+    image: Optional[Union[str, ImageAsset]] = None
+    features: List[str] = Field(default_factory=list)
+    button_text: str = ""
+    button_link: Optional[str] = None
+    select_label: str = ""
+    form_options: List[str] = Field(default_factory=list)
+    order: int = 0
 
 
 class LegalSection(BaseModel):
@@ -151,6 +181,8 @@ class WebsiteSettings(TimestampedDocument):
     hero_headline: Optional[str] = None
     hero_subtitle: Optional[str] = None
     hero_description: Optional[str] = None
+    hero_cta_primary_text: Optional[str] = None
+    hero_cta_secondary_text: Optional[str] = None
     hero_image: Optional[ImageAsset] = None
     hero_stats: List[HeroStat] = Field(default_factory=list)
 
@@ -165,7 +197,26 @@ class WebsiteSettings(TimestampedDocument):
     about_stats: List[HeroStat] = Field(default_factory=list)
     about_values: List[ValueItem] = Field(default_factory=list)
     about_commitments: List[str] = Field(default_factory=list)
+    commitment_items: List[CommitmentItem] = Field(default_factory=list)
     commitment_image: Optional[ImageAsset] = None
+
+    # About page founders
+    about_founders: List[FounderCard] = Field(default_factory=list)
+
+    # About page address
+    about_address_name: Optional[str] = None
+    about_address_line1: Optional[str] = None
+    about_address_line2: Optional[str] = None
+    about_map_embed_url: Optional[str] = None
+
+    # Why Choose section header
+    why_choose_eyebrow: Optional[str] = None
+    why_choose_title: Optional[str] = None
+    why_choose_description: Optional[str] = None
+    commitment_subtitle: Optional[str] = None
+    commitment_badge_value: Optional[str] = None
+    commitment_badge_label: Optional[str] = None
+
     about_welcome_title: Optional[str] = None
     about_welcome_description: Optional[str] = None
     about_welcome_image: Optional[ImageAsset] = None
@@ -183,6 +234,12 @@ class WebsiteSettings(TimestampedDocument):
     trust_bar_items: List[str] = Field(default_factory=list)
     why_choose_items: List[WhyChooseItem] = Field(default_factory=list)
     conditions_list: List[str] = Field(default_factory=list)
+
+    # ── Comprehensive Services (Home page) ───────────────────
+    comprehensive_services_eyebrow: Optional[str] = None
+    comprehensive_services_title: Optional[str] = None
+    comprehensive_services_description: Optional[str] = None
+    comprehensive_services: List[ComprehensiveServiceCard] = Field(default_factory=list)
 
     # ── Footer ──────────────────────────────────────────────
     footer_tagline: Optional[str] = None

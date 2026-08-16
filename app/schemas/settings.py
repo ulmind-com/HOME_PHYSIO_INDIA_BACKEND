@@ -9,6 +9,9 @@ from pydantic import BaseModel, EmailStr, Field
 from app.models.base import ImageAsset
 from app.models.settings import (
     CareTeamSlide,
+    CommitmentItem,
+    ComprehensiveServiceCard,
+    FounderCard,
     HomeAboutFeature,
     HomeAboutTile,
     HomeHero,
@@ -48,6 +51,8 @@ class WebsiteSettingsUpdate(BaseModel):
     hero_headline: Optional[str] = None
     hero_subtitle: Optional[str] = None
     hero_description: Optional[str] = None
+    hero_cta_primary_text: Optional[str] = None
+    hero_cta_secondary_text: Optional[str] = None
     hero_image: Optional[ImageAsset] = None
     hero_stats: Optional[List[HeroStat]] = None
 
@@ -62,7 +67,19 @@ class WebsiteSettingsUpdate(BaseModel):
     about_stats: Optional[List[HeroStat]] = None
     about_values: Optional[List[ValueItem]] = None
     about_commitments: Optional[List[str]] = None
+    commitment_items: Optional[List[CommitmentItem]] = None
     commitment_image: Optional[ImageAsset] = None
+    about_founders: Optional[List[FounderCard]] = None
+    about_address_name: Optional[str] = None
+    about_address_line1: Optional[str] = None
+    about_address_line2: Optional[str] = None
+    about_map_embed_url: Optional[str] = None
+    why_choose_eyebrow: Optional[str] = None
+    why_choose_title: Optional[str] = None
+    why_choose_description: Optional[str] = None
+    commitment_subtitle: Optional[str] = None
+    commitment_badge_value: Optional[str] = None
+    commitment_badge_label: Optional[str] = None
     about_welcome_title: Optional[str] = None
     about_welcome_description: Optional[str] = None
     about_welcome_image: Optional[ImageAsset] = None
@@ -80,6 +97,12 @@ class WebsiteSettingsUpdate(BaseModel):
     trust_bar_items: Optional[List[str]] = None
     why_choose_items: Optional[List[WhyChooseItem]] = None
     conditions_list: Optional[List[str]] = None
+
+    # Comprehensive Services
+    comprehensive_services_eyebrow: Optional[str] = None
+    comprehensive_services_title: Optional[str] = None
+    comprehensive_services_description: Optional[str] = None
+    comprehensive_services: Optional[List[ComprehensiveServiceCard]] = None
 
     # Footer
     footer_tagline: Optional[str] = None
@@ -118,6 +141,8 @@ class WebsiteSettingsResponse(IdTimestampSchema):
     hero_headline: Optional[str] = None
     hero_subtitle: Optional[str] = None
     hero_description: Optional[str] = None
+    hero_cta_primary_text: Optional[str] = None
+    hero_cta_secondary_text: Optional[str] = None
     hero_image: Optional[ImageAsset] = None
     hero_stats: List[HeroStat] = Field(default_factory=list)
 
@@ -132,7 +157,19 @@ class WebsiteSettingsResponse(IdTimestampSchema):
     about_stats: List[HeroStat] = Field(default_factory=list)
     about_values: List[ValueItem] = Field(default_factory=list)
     about_commitments: List[str] = Field(default_factory=list)
+    commitment_items: List[CommitmentItem] = Field(default_factory=list)
     commitment_image: Optional[ImageAsset] = None
+    about_founders: List[FounderCard] = Field(default_factory=list)
+    about_address_name: Optional[str] = None
+    about_address_line1: Optional[str] = None
+    about_address_line2: Optional[str] = None
+    about_map_embed_url: Optional[str] = None
+    why_choose_eyebrow: Optional[str] = None
+    why_choose_title: Optional[str] = None
+    why_choose_description: Optional[str] = None
+    commitment_subtitle: Optional[str] = None
+    commitment_badge_value: Optional[str] = None
+    commitment_badge_label: Optional[str] = None
     about_welcome_title: Optional[str] = None
     about_welcome_description: Optional[str] = None
     about_welcome_image: Optional[ImageAsset] = None
@@ -150,6 +187,12 @@ class WebsiteSettingsResponse(IdTimestampSchema):
     trust_bar_items: List[str] = Field(default_factory=list)
     why_choose_items: List[WhyChooseItem] = Field(default_factory=list)
     conditions_list: List[str] = Field(default_factory=list)
+
+    # Comprehensive Services
+    comprehensive_services_eyebrow: Optional[str] = None
+    comprehensive_services_title: Optional[str] = None
+    comprehensive_services_description: Optional[str] = None
+    comprehensive_services: List[ComprehensiveServiceCard] = Field(default_factory=list)
 
     # Footer
     footer_tagline: Optional[str] = None
