@@ -12,7 +12,6 @@ from pydantic import BaseModel, EmailStr, Field
 
 from app.models.base import ImageAsset, TimestampedDocument
 
-
 class WorkingHour(BaseModel):
     """Opening hours for a single day of the week."""
 
@@ -21,13 +20,11 @@ class WorkingHour(BaseModel):
     close_time: Optional[str] = None
     is_closed: bool = False
 
-
 class HeroStat(BaseModel):
     """A single stat displayed in the services hero band (e.g. ``24/7`` → ``Patient Support``)."""
 
     value: str
     label: str
-
 
 class HeroSlide(BaseModel):
     """A single slide for the services hero carousel."""
@@ -40,7 +37,6 @@ class HeroSlide(BaseModel):
     image_mobile: Optional[ImageAsset] = None
     order: int = 0
 
-
 class ServicesHero(BaseModel):
     """Editable content for the Services page hero section."""
 
@@ -50,14 +46,12 @@ class ServicesHero(BaseModel):
     stats: List[HeroStat] = Field(default_factory=list)
     slides: List[HeroSlide] = Field(default_factory=list)
 
-
 class HomeHeroStat(BaseModel):
     """A single stat displayed in the home hero section (e.g. 100 + Verified Caregivers)."""
 
     value: int = 0
     suffix: str = ""
     label: str = ""
-
 
 class HomeHero(BaseModel):
     """Editable content for the Home page hero section."""
@@ -69,12 +63,10 @@ class HomeHero(BaseModel):
     slider_images_mobile: List[ImageAsset] = Field(default_factory=list)
     stats: List[HomeHeroStat] = Field(default_factory=list)
 
-
 class ValueItem(BaseModel):
     """A title/body pair used for about-page values and similar sections."""
     title: Optional[str] = ""
     body: Optional[str] = ""
-
 
 class TeamTile(BaseModel):
     """A single tile in the professionals / team section."""
@@ -82,7 +74,6 @@ class TeamTile(BaseModel):
     count: str = ""
     title: str = ""
     desc: str = ""
-
 
 class CareTeamSlide(BaseModel):
     """A single slide in the care-team stacked-card carousel."""
@@ -94,18 +85,15 @@ class CareTeamSlide(BaseModel):
     button_link: str = "/booking"
     stats: List[HeroStat] = Field(default_factory=list)
 
-
 class WhyChooseItem(BaseModel):
     """A single card in the 'Why Choose Nupun' section."""
     title: str = ""
     detail: str = ""
 
-
 class CommitmentItem(BaseModel):
     """A single item in the 'Our Commitment to Excellence' grid."""
     icon: str = "default"
     text: str = ""
-
 
 class FounderCard(BaseModel):
     """A founder/co-founder card on the About page."""
@@ -115,14 +103,12 @@ class FounderCard(BaseModel):
     description: str = ""
     address: Optional[str] = None
 
-
 class HomeAboutFeature(BaseModel):
     """A single feature item in the Home About section (e.g. ICU at Home)."""
     title: Optional[str] = None
     description: Optional[str] = None
     icon: Optional[str] = "heart-pulse"  # fallback icon key
     icon_image: Optional[Union[str, ImageAsset]] = None  # uploaded PNG/image URL (overrides icon key)
-
 
 class HomeAboutTile(BaseModel):
     """A single image card in the Home About section (e.g. 120+ Registered Nurses)."""
@@ -132,7 +118,6 @@ class HomeAboutTile(BaseModel):
     description: Optional[str] = None
     cta_label: Optional[str] = None
     cta_link: Optional[str] = "/booking"
-
 
 class ComprehensiveServiceCard(BaseModel):
     """A single card in the 'Our Comprehensive Services' homepage section."""
@@ -146,12 +131,10 @@ class ComprehensiveServiceCard(BaseModel):
     form_options: List[str] = Field(default_factory=list)
     order: int = 0
 
-
 class LegalSection(BaseModel):
     """A single section of a legal page (privacy, terms, refund)."""
     title: Optional[str] = ""
     body: Optional[str] = ""
-
 
 class WebsiteSettings(TimestampedDocument):
     """Global website / brand settings."""
@@ -260,7 +243,6 @@ class WebsiteSettings(TimestampedDocument):
     class Settings:
         name = "website_settings"
 
-
 class SocialLinks(TimestampedDocument):
     """Social media profile links."""
 
@@ -268,12 +250,10 @@ class SocialLinks(TimestampedDocument):
     instagram: Optional[str] = None
     linkedin: Optional[str] = None
     youtube: Optional[str] = None
-    twitter: Optional[str] = None
     whatsapp: Optional[str] = None
 
     class Settings:
         name = "social_links"
-
 
 class SEOSettings(TimestampedDocument):
     """Per-page (or global) SEO configuration.

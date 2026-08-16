@@ -25,9 +25,7 @@ from app.models.settings import (
 )
 from app.schemas.common import IdTimestampSchema
 
-
 # ---- Website settings ----
-
 
 class WebsiteSettingsUpdate(BaseModel):
     website_name: Optional[str] = None
@@ -118,7 +116,6 @@ class WebsiteSettingsUpdate(BaseModel):
     terms_sections: Optional[List[LegalSection]] = None
     refund_sections: Optional[List[LegalSection]] = None
 
-
 class WebsiteSettingsResponse(IdTimestampSchema):
     website_name: str
     tagline: Optional[str] = None
@@ -208,30 +205,24 @@ class WebsiteSettingsResponse(IdTimestampSchema):
     terms_sections: List[LegalSection] = Field(default_factory=list)
     refund_sections: List[LegalSection] = Field(default_factory=list)
 
-
 # ---- Social links ----
-
 
 class SocialLinksUpdate(BaseModel):
     facebook: Optional[str] = None
     instagram: Optional[str] = None
     linkedin: Optional[str] = None
     youtube: Optional[str] = None
-    twitter: Optional[str] = None
+    linkedin: Optional[str] = None
     whatsapp: Optional[str] = None
-
 
 class SocialLinksResponse(IdTimestampSchema):
     facebook: Optional[str] = None
     instagram: Optional[str] = None
     linkedin: Optional[str] = None
     youtube: Optional[str] = None
-    twitter: Optional[str] = None
     whatsapp: Optional[str] = None
 
-
 # ---- SEO ----
-
 
 class SEOSettingsUpsert(BaseModel):
     page_key: str = Field("global", min_length=1, max_length=80)
@@ -241,7 +232,6 @@ class SEOSettingsUpsert(BaseModel):
     canonical_url: Optional[str] = None
     og_image: Optional[str] = None
     schema_markup: Optional[str] = None
-
 
 class SEOSettingsResponse(IdTimestampSchema):
     page_key: str
