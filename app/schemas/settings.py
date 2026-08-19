@@ -88,7 +88,7 @@ class WebsiteSettingsUpdate(BaseModel):
     home_about_features: Optional[List[HomeAboutFeature]] = None
     home_about_tiles: Optional[List[HomeAboutTile]] = None
 
-    videos_wall_image: Optional[str] = None
+    videos_wall_image: Optional[ImageAsset] = None
 
     # Content sections
     how_it_works_steps: Optional[List[ValueItem]] = None
@@ -179,7 +179,7 @@ class WebsiteSettingsResponse(IdTimestampSchema):
     home_about_features: List[HomeAboutFeature] = Field(default_factory=list)
     home_about_tiles: List[HomeAboutTile] = Field(default_factory=list)
 
-    videos_wall_image: Optional[str] = None
+    videos_wall_image: Optional[ImageAsset] = None
 
     # Content sections
     how_it_works_steps: List[ValueItem] = Field(default_factory=list)

@@ -210,7 +210,7 @@ class WebsiteSettings(TimestampedDocument):
     home_about_features: List[HomeAboutFeature] = Field(default_factory=list)
     home_about_tiles: List[HomeAboutTile] = Field(default_factory=list)
 
-    videos_wall_image: Optional[str] = None
+    videos_wall_image: Optional[ImageAsset] = None
 
     # ── Reusable content sections ───────────────────────────
     how_it_works_steps: List[ValueItem] = Field(default_factory=list)
