@@ -44,10 +44,12 @@ class Booking(TimestampedDocument):
     # Contact.
     contact_phone: str
     contact_email: Optional[EmailStr] = None
+    whatsapp_number: Optional[str] = None
 
     # Service.
     service_id: Optional[str] = None
     service_name: str
+    care_required: Optional[str] = None
 
     # Scheduling.
     preferred_date: dt.date

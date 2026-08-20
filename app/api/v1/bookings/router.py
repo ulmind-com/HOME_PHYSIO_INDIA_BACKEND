@@ -28,7 +28,6 @@ router = APIRouter(prefix="/bookings", tags=["Bookings"])
 
 
 @router.post("", status_code=201, summary="Create booking (public)")
-@limiter.limit(settings.RATE_LIMIT_DEFAULT)
 async def create_booking(
     request: Request,
     payload: BookingCreate,

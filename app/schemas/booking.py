@@ -20,9 +20,11 @@ class BookingCreate(BaseModel):
 
     contact_phone: str = Field(..., min_length=6, max_length=20, pattern=r"^\+?[0-9\-\s\(\)]+$")
     contact_email: Optional[EmailStr] = None
+    whatsapp_number: Optional[str] = Field(None, max_length=20)
 
     service_id: Optional[str] = None
     service_name: str = Field(..., min_length=2, max_length=200)
+    care_required: Optional[str] = Field(None, max_length=1000)
 
     preferred_date: dt.date
     preferred_time: Optional[str] = None
@@ -46,7 +48,9 @@ class BookingUpdate(BaseModel):
     patient_gender: Optional[Gender] = None
     contact_phone: Optional[str] = None
     contact_email: Optional[EmailStr] = None
+    whatsapp_number: Optional[str] = None
     service_name: Optional[str] = None
+    care_required: Optional[str] = None
     preferred_date: Optional[dt.date] = None
     preferred_time: Optional[str] = None
     address: Optional[str] = None
@@ -78,8 +82,10 @@ class BookingResponse(IdTimestampSchema):
     patient_gender: Optional[Gender] = None
     contact_phone: str
     contact_email: Optional[EmailStr] = None
+    whatsapp_number: Optional[str] = None
     service_id: Optional[str] = None
     service_name: str
+    care_required: Optional[str] = None
     preferred_date: dt.date
     preferred_time: Optional[str] = None
     address: str

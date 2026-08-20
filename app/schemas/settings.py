@@ -8,6 +8,7 @@ from pydantic import BaseModel, EmailStr, Field
 
 from app.models.base import ImageAsset
 from app.models.settings import (
+    BookingFormConfig,
     CareTeamSlide,
     CommitmentItem,
     ComprehensiveServiceCard,
@@ -118,6 +119,9 @@ class WebsiteSettingsUpdate(BaseModel):
     terms_sections: Optional[List[LegalSection]] = None
     refund_sections: Optional[List[LegalSection]] = None
 
+    # Booking form config
+    booking_form_config: Optional[BookingFormConfig] = None
+
 class WebsiteSettingsResponse(IdTimestampSchema):
     website_name: str
     tagline: Optional[str] = None
@@ -208,6 +212,9 @@ class WebsiteSettingsResponse(IdTimestampSchema):
     privacy_sections: List[LegalSection] = Field(default_factory=list)
     terms_sections: List[LegalSection] = Field(default_factory=list)
     refund_sections: List[LegalSection] = Field(default_factory=list)
+
+    # Booking form config
+    booking_form_config: Optional[BookingFormConfig] = None
 
 # ---- Social links ----
 

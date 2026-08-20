@@ -131,6 +131,33 @@ class ComprehensiveServiceCard(BaseModel):
     form_options: List[str] = Field(default_factory=list)
     order: int = 0
 
+class BookingFormField(BaseModel):
+    """A single field in a booking form step."""
+    name: str = ""            # field key (e.g. "patient_name")
+    label: str = ""           # display label
+    type: str = "text"        # text, textarea, select, radio, date, time, number
+    placeholder: Optional[str] = None
+    required: bool = False
+    options: List[str] = Field(default_factory=list)  # for select/radio fields
+    col_span: int = 1         # 1 = half width, 2 = full width
+    order: int = 0
+
+class BookingFormStep(BaseModel):
+    """A single step in the multi-step booking form."""
+    key: str = ""             # unique step key
+    label: str = ""           # step label (shown in progress header)
+    eyebrow: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    fields: List[BookingFormField] = Field(default_factory=list)
+    order: int = 0
+
+class BookingFormConfig(BaseModel):
+    """Complete booking form configuration."""
+    steps: List[BookingFormStep] = Field(default_factory=list)
+    cities: List[str] = Field(default_factory=list)
+    service_care_hints: dict = Field(default_factory=dict)  # service_name -> hint text
+
 class LegalSection(BaseModel):
     """A single section of a legal page (privacy, terms, refund)."""
     title: Optional[str] = ""
@@ -239,6 +266,9 @@ class WebsiteSettings(TimestampedDocument):
     privacy_sections: List[LegalSection] = Field(default_factory=list)
     terms_sections: List[LegalSection] = Field(default_factory=list)
     refund_sections: List[LegalSection] = Field(default_factory=list)
+
+    # ── Booking form config ─────────────────────────────────
+    booking_form_config: Optional[BookingFormConfig] = None
 
     is_active: bool = True
 
