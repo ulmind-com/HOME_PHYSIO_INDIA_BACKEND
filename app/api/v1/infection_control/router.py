@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 
 from app.api.helpers import item_response, paginated_response
 from app.core.pagination import PaginationParams
 from app.core.responses import success_response
 from app.dependencies.auth import ActorContext, require_permission
+from app.models.enums import NotificationType
+from app.services.email_service import email_service
+from app.services.notification_service import notification_service
 from app.models.infection_control import (
     InfectionControlEnquiry,
     InfectionControlPageContent,
@@ -64,9 +67,32 @@ async def update_content(
 
 
 @router.post("/enquiry", summary="Submit an Infection Control enquiry (public)")
-async def create_enquiry(payload: InfectionControlEnquiryCreate) -> dict:
+async def create_enquiry(
+    payload: InfectionControlEnquiryCreate,
+    background_tasks: BackgroundTasks,
+) -> dict:
     doc = InfectionControlEnquiry(**payload.model_dump())
     await _enquiry.create(doc)
+
+    # ── In-app notification for admin panel ──
+    await notification_service.create(
+        title="New Infection Control Enquiry",
+        message=f"{doc.full_name}: {doc.requirement_type or 'General Enquiry'}",
+        type=NotificationType.ENQUIRY,
+        reference_id=str(doc.id),
+        link="/infection-control-enquiries",
+    )
+
+    # ── Admin email notification (non-blocking) ──
+    background_tasks.add_task(
+        email_service.send_admin_notification,
+        "New Infection Control Enquiry",
+        f"<p><b>{doc.full_name}</b> (Phone: {doc.phone_number}) submitted an "
+        f"Infection Control enquiry.</p>"
+        f"<p>Requirement: {doc.requirement_type or 'N/A'}</p>"
+        f"<blockquote>{doc.message or 'No message provided'}</blockquote>",
+    )
+
     return item_response(
         InfectionControlEnquiryResponse, doc, "Enquiry submitted successfully"
     )

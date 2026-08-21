@@ -100,6 +100,7 @@ class NotificationType(StrEnum):
     CONTACT = "contact"
     APPLICATION = "application"
     RENTAL = "rental"
+    ENQUIRY = "enquiry"
     SYSTEM = "system"
 
 
