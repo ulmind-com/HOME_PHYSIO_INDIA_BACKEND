@@ -12,6 +12,7 @@ from app.models.contact import ContactMessage
 from app.models.equipment import Equipment, EquipmentCategory, EquipmentRental
 from app.models.faq import FAQ
 from app.models.elder_care import ElderCareRequest
+from app.models.infection_control import InfectionControlEnquiry, InfectionControlPageContent
 from app.models.notification import Notification
 from app.models.rbac import Permission, Role
 from app.models.service import Category, Service
@@ -51,6 +52,8 @@ ALL_DOCUMENT_MODELS = [
     SocialLinks,
     Notification,
     ActivityLog,
+    InfectionControlPageContent,
+    InfectionControlEnquiry,
 ]
 
 __all__ = [
@@ -82,4 +85,6 @@ __all__ = [
     "SocialLinks",
     "Notification",
     "ActivityLog",
+    "InfectionControlPageContent",
+    "InfectionControlEnquiry",
 ]

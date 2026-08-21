@@ -10,6 +10,7 @@ from app.api.v1.contact.router import router as contact_router
 from app.api.v1.dashboard.router import router as dashboard_router
 from app.api.v1.equipment.router import router as equipment_router
 from app.api.v1.faq.router import router as faq_router
+from app.api.v1.infection_control.router import router as infection_control_router
 from app.api.v1.notifications.router import router as notifications_router
 from app.api.v1.reviews.router import router as reviews_router
 from app.api.v1.search.router import router as search_router
@@ -38,8 +39,10 @@ api_router.include_router(faq_router)
 api_router.include_router(reviews_router)
 api_router.include_router(contact_router)
 api_router.include_router(settings_router)
+api_router.include_router(infection_control_router)
 api_router.include_router(notifications_router)
 api_router.include_router(uploads_router)
 api_router.include_router(search_router)
 
 __all__ = ["api_router"]
+
