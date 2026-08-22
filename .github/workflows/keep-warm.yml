@@ -1,0 +1,30 @@
+name: Keep backend warm
+
+# Render's free tier spins the service down after ~15 min of inactivity, so the
+# next request pays a 50s+ cold start (users saw an endless loading spinner on
+# the site while that first request woke the backend). This pings the health
+# endpoint on a schedule so the instance stays awake and pages load instantly.
+
+on:
+  schedule:
+    # Every 10 minutes (GitHub may delay runs a little; the buffer under
+    # Render's 15-min sleep window keeps cold starts rare).
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /health (wake the instance if it is asleep)
+        run: |
+          for i in 1 2 3; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 70 \
+              https://nupun-health-backend.onrender.com/health) || code=000
+            echo "attempt $i -> HTTP $code"
+            [ "$code" = "200" ] && exit 0
+            sleep 20
+          done
+          # Never fail the workflow just because a wake-up was slow — this is
+          # best-effort warming, not a health gate.
+          echo "warm-up ping did not get 200 (instance may still be waking)"
