@@ -6,7 +6,7 @@ import datetime as dt
 from typing import List, Optional
 
 from beanie import Document
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 def utcnow() -> dt.datetime:
@@ -38,6 +38,16 @@ class ImageAsset(BaseModel):
     height: Optional[int] = None
     format: Optional[str] = None
     alt: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_bare_string(cls, value: object) -> object:
+        """Tolerate legacy/imported data where an image was stored as a plain
+        URL string instead of ``{"url": ...}``. Without this a single such
+        document makes the whole list endpoint fail response validation (500)."""
+        if isinstance(value, str):
+            return {"url": value}
+        return value
 
 
 class FileAsset(BaseModel):
