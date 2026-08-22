@@ -7,6 +7,7 @@ from typing import List, Optional
 
 from beanie import Document
 from pydantic import BaseModel, Field, model_validator
+from pydantic_core import PydanticUndefined
 
 
 def utcnow() -> dt.datetime:
@@ -23,6 +24,27 @@ class TimestampedDocument(Document):
 
     created_at: dt.datetime = Field(default_factory=utcnow)
     updated_at: dt.datetime = Field(default_factory=utcnow)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _fill_null_defaulted_fields(cls, data: object) -> object:
+        """Guard every document against legacy/imported data that stores an
+        explicit ``null`` for a non-nullable field that has a default (e.g.
+        ``order: null``, ``is_active: null``). Loading such a document used to
+        raise and 500 the whole list endpoint. Dropping the null lets the
+        field default apply. Only fields whose default is a real (non-None)
+        value are touched, so genuinely-optional fields are left untouched."""
+        if not isinstance(data, dict):
+            return data
+        for name, field in cls.model_fields.items():
+            if data.get(name) is not None or name not in data:
+                continue
+            has_real_default = field.default_factory is not None or (
+                field.default is not None and field.default is not PydanticUndefined
+            )
+            if has_real_default:
+                data.pop(name)
+        return data
 
     def touch(self) -> None:
         """Refresh the ``updated_at`` timestamp."""
