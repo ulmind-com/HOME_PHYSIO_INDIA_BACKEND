@@ -86,7 +86,7 @@ class CareTeamSlide(BaseModel):
     stats: List[HeroStat] = Field(default_factory=list)
 
 class WhyChooseItem(BaseModel):
-    """A single card in the 'Why Choose Nupun' section."""
+    """A single card in the 'Why Choose Home Physio India' section."""
     title: str = ""
     detail: str = ""
 
@@ -166,7 +166,7 @@ class LegalSection(BaseModel):
 class WebsiteSettings(TimestampedDocument):
     """Global website / brand settings."""
 
-    website_name: str = "Nupun Home Health Care Services"
+    website_name: str = "Home Physio India"
     tagline: Optional[str] = None
     logo: Optional[ImageAsset] = None
     favicon: Optional[ImageAsset] = None

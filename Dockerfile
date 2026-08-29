@@ -1,4 +1,4 @@
-# ---- Nupun Home Health Care Services API ----
+# ---- Home Physio India API ----
 FROM python:3.13-slim AS base
 
 # Prevent Python from writing .pyc files and buffering stdout/stderr.

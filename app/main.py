@@ -28,7 +28,7 @@ from app.middleware import RequestContextMiddleware, SecurityHeadersMiddleware
 logger = get_logger(__name__)
 
 _DESCRIPTION = """
-Backend API for **Nupun Home Health Care Services**.
+Backend API for **Home Physio India**.
 
 A production-grade, API-only backend powering the admin panel and the public
 website: services, bookings, medical equipment rentals, careers, blogs, videos,
@@ -97,7 +97,7 @@ def create_app() -> FastAPI:
     async def root() -> dict:
         return success_response(
             data={"name": settings.APP_NAME, "version": __version__, "docs": "/docs"},
-            message="Nupun Home Health Care Services API is running",
+            message="Home Physio India API is running",
         )
 
     @app.get("/health", tags=["Health"], summary="Health check")

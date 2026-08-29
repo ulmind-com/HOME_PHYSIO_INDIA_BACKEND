@@ -12,7 +12,7 @@ import os
 # Ensure required settings exist before app imports read them.
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-pytest-only-not-secret")
 os.environ.setdefault("MONGODB_URL", "mongomock://localhost")
-os.environ.setdefault("MONGODB_DB_NAME", "nupun_health_test")
+os.environ.setdefault("MONGODB_DB_NAME", "home_physio_india_test")
 os.environ.setdefault("CORS_ORIGINS", "*")
 os.environ.setdefault("FIRST_ADMIN_EMAIL", "admin@test.com")
 os.environ.setdefault("FIRST_ADMIN_PASSWORD", "Admin@12345")
@@ -32,7 +32,7 @@ async def db():
     """Initialise Beanie against an in-memory Mongo and seed defaults."""
     client = AsyncMongoMockClient()
     await init_beanie(
-        database=client["nupun_health_test"], document_models=ALL_DOCUMENT_MODELS
+        database=client["home_physio_india_test"], document_models=ALL_DOCUMENT_MODELS
     )
     await run_seed()
     yield client

@@ -144,7 +144,7 @@ async def create_application(
         contents = await read_validated_document(resume, MAX_FILE_BYTES)
         file_asset = await cloudinary_service.upload_file(
             contents,
-            folder="nupun/resumes",
+            folder="home_physio_india/resumes",
             resource_type="auto",
             original_filename=resume.filename,
         )

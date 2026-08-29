@@ -2,8 +2,8 @@ import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
 
 async def main():
-    client = AsyncIOMotorClient("mongodb+srv://ulmindorg_db_user:nupun123@cluster0.phsnman.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
-    db = client["nupun_health"]
+    client = AsyncIOMotorClient("mongodb+srv://ulmindorg_db_user:homephysio123@cluster0.phsnman.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+    db = client["home_physio_india"]
     
     cat = await db["categories"].find_one({"name": "Injection Administration"})
     if not cat:

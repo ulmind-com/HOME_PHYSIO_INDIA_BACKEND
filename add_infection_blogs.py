@@ -2,7 +2,7 @@ import asyncio
 from datetime import datetime, timezone
 from motor.motor_asyncio import AsyncIOMotorClient
 
-MONGO = "mongodb+srv://ulmindorg_db_user:nupun123@cluster0.phsnman.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+MONGO = "mongodb+srv://ulmindorg_db_user:homephysio123@cluster0.phsnman.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
 now = datetime.now(timezone.utc)
 
@@ -18,7 +18,7 @@ def blog(title, slug, excerpt, image, tags, content, meta_desc):
         "tags": tags,
         "featured_image": {"url": image, "public_id": None, "width": None,
                            "height": None, "format": None, "alt": title},
-        "author_name": "Nupun Care Team",
+        "author_name": "Home Physio India Care Team",
         "seo": {"meta_title": title, "meta_description": meta_desc,
                 "meta_keywords": tags, "canonical_url": None},
         "is_featured": False,
@@ -58,7 +58,7 @@ BLOG1 = blog(
 <h2>Infection Control in Home Healthcare</h2>
 <p>Infection prevention is just as important at home as in a hospital. Appropriate guidance on hygiene, safe practices and prevention can support families caring for patients in home and patient-care environments.</p>
 
-<p>If you would like to understand infection-control support for your setting, you can reach out to the Nupun Home Health Care Services team to discuss your requirement.</p>
+<p>If you would like to understand infection-control support for your setting, you can reach out to the Home Physio India team to discuss your requirement.</p>
 """,
     "Learn what an infection control nurse does — their roles, responsibilities and importance in preventing infections across healthcare and home-care settings.",
 )
@@ -91,7 +91,7 @@ BLOG2 = blog(
 <h2>Infection Prevention at Home</h2>
 <p>Families caring for patients at home can also benefit from simple, appropriate infection-prevention guidance — including hygiene routines and safe handling practices suited to home-care environments.</p>
 
-<p>To discuss infection-prevention support for your healthcare or home-care setting, you can contact the Nupun Home Health Care Services team.</p>
+<p>To discuss infection-prevention support for your healthcare or home-care setting, you can contact the Home Physio India team.</p>
 """,
     "Essential infection prevention and control practices for healthcare settings — hand hygiene, PPE, waste handling, environmental hygiene and more.",
 )
@@ -125,14 +125,14 @@ BLOG3 = blog(
 <p>Practical exposure in healthcare or care environments helps professionals apply infection-prevention practices in real-world situations and grow their confidence in the field.</p>
 
 <h2>Enquire About Infection Control Support</h2>
-<p>If you are a nursing student or healthcare professional interested in infection-control education or support, you can submit an enquiry to the Nupun Home Health Care Services team to learn about available guidance.</p>
+<p>If you are a nursing student or healthcare professional interested in infection-control education or support, you can submit an enquiry to the Home Physio India team to learn about available guidance.</p>
 """,
     "A general career guide to becoming an infection control nurse — the nursing foundation, helpful skills, training and practical experience involved.",
 )
 
 
 async def main():
-    db = AsyncIOMotorClient(MONGO)["nupun_health"]
+    db = AsyncIOMotorClient(MONGO)["home_physio_india"]
     for b in (BLOG1, BLOG2, BLOG3):
         existing = await db["blogs"].find_one({"slug": b["slug"]})
         if existing:

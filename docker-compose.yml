@@ -1,7 +1,7 @@
 services:
   api:
     build: .
-    container_name: nupun-health-api
+    container_name: home-physio-india-api
     restart: unless-stopped
     ports:
       - "8000:8000"
@@ -26,7 +26,7 @@ services:
   #
   # mongo:
   #   image: mongo:7
-  #   container_name: nupun-health-mongo
+  #   container_name: home-physio-india-mongo
   #   restart: unless-stopped
   #   ports:
   #     - "127.0.0.1:27017:27017"

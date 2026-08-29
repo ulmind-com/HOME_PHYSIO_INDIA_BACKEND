@@ -1,11 +1,11 @@
 import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
 
-MONGO = "mongodb+srv://ulmindorg_db_user:nupun123@cluster0.phsnman.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+MONGO = "mongodb+srv://ulmindorg_db_user:homephysio123@cluster0.phsnman.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
 
 async def main():
-    db = AsyncIOMotorClient(MONGO)["nupun_health"]
+    db = AsyncIOMotorClient(MONGO)["home_physio_india"]
 
     # 1) Trim leading/trailing whitespace on category names.
     cat_fixed = 0

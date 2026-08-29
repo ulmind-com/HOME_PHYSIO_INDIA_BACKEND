@@ -5,7 +5,7 @@ URL = "http://localhost:8000/api/v1"
 
 # 1. Login
 data = json.dumps({
-    "email": "admin@nupunhealth.com",
+    "email": "admin@homephysioindia.com",
     "password": "Admin@12345"
 }).encode()
 

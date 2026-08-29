@@ -6,8 +6,8 @@ from app.models.base import ImageAsset
 from app.models.enums import ContentStatus
 
 async def main():
-    client = AsyncIOMotorClient("mongodb+srv://ulmindorg_db_user:nupun123@cluster0.phsnman.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
-    db = client["nupun_health"]
+    client = AsyncIOMotorClient("mongodb+srv://ulmindorg_db_user:homephysio123@cluster0.phsnman.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+    db = client["home_physio_india"]
     await init_beanie(database=db, document_models=[Service, Category])
 
     # 1. Add Infection Control Service if not exists

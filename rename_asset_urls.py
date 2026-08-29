@@ -1,11 +1,11 @@
 import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
 
-MONGO = "mongodb+srv://ulmindorg_db_user:nupun123@cluster0.phsnman.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+MONGO = "mongodb+srv://ulmindorg_db_user:homephysio123@cluster0.phsnman.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
 async def main():
     client = AsyncIOMotorClient(MONGO)
-    db = client["nupun_health"]
+    db = client["home_physio_india"]
 
     # 1. Update Categories
     cats = db["categories"].find({})

@@ -1,8 +1,8 @@
-# Render.com Blueprint for Nupun Home Health Care Services API.
+# Render.com Blueprint for Home Physio India API.
 # Docs: https://render.com/docs/blueprint-spec
 services:
   - type: web
-    name: nupun-health-api
+    name: home-physio-india-api
     runtime: python
     plan: starter
     region: singapore
@@ -29,7 +29,7 @@ services:
       - key: MONGODB_URL
         sync: false
       - key: MONGODB_DB_NAME
-        value: nupun_health
+        value: home_physio_india
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY

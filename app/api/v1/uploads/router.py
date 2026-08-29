@@ -26,7 +26,7 @@ router = APIRouter(prefix="/uploads", tags=["Uploads"])
 @router.post("/image", summary="Upload an image")
 async def upload_image(
     file: UploadFile = File(...),
-    folder: str = Form("nupun/images"),
+    folder: str = Form("home_physio_india/images"),
     actor: ActorContext = Depends(require_permission("media", "create")),
 ) -> dict:
     contents = await read_validated_image(file, MAX_IMAGE_BYTES)
@@ -42,7 +42,7 @@ async def upload_image(
 @router.post("/file", summary="Upload a document/file")
 async def upload_file(
     file: UploadFile = File(...),
-    folder: str = Form("nupun/files"),
+    folder: str = Form("home_physio_india/files"),
     actor: ActorContext = Depends(require_permission("media", "create")),
 ) -> dict:
     contents = await read_validated_upload(file, DOC_TYPES, MAX_FILE_BYTES)
@@ -56,7 +56,7 @@ async def upload_file(
 @router.post("/video", summary="Upload a video")
 async def upload_video(
     file: UploadFile = File(...),
-    folder: str = Form("nupun/videos"),
+    folder: str = Form("home_physio_india/videos"),
     actor: ActorContext = Depends(require_permission("media", "create")),
 ) -> dict:
     contents = await read_validated_upload(file, VIDEO_TYPES, MAX_VIDEO_BYTES)

@@ -59,7 +59,7 @@ class InfectionControlPageContent(TimestampedDocument):
 
     # ── Short Introduction ───────────────────────────────
     intro_heading: str = "Professional Infection Prevention & Control Support"
-    intro_content: str = "Nupun Home Health Care Services provides professional infection prevention and control support for healthcare professionals, nursing teams, healthcare facilities and home-care environments. Our services focus on promoting safe practices, proper hygiene, infection prevention protocols and awareness in healthcare settings."
+    intro_content: str = "Home Physio India provides professional infection prevention and control support for healthcare professionals, nursing teams, healthcare facilities and home-care environments. Our services focus on promoting safe practices, proper hygiene, infection prevention protocols and awareness in healthcare settings."
 
     # ── Our Comprehensive Services ───────────────────────
     services: List[ICServiceItem] = Field(default_factory=lambda: [
@@ -102,7 +102,7 @@ class InfectionControlPageContent(TimestampedDocument):
         ICFaqItem(question="What topics can be covered in Infection Control training?", answer="Topics may include hand hygiene, PPE, standard precautions, infection prevention practices, biomedical waste management and other relevant infection-control procedures."),
         ICFaqItem(question="Can nursing students enquire about Infection Control Nurse training?", answer="Yes. Nursing students and healthcare professionals can submit an enquiry regarding available educational or training support."),
         ICFaqItem(question="Do you provide an Infection Control Nurse certificate?", answer="Any certificate or training credential should be provided only according to the actual course, authorization, affiliation or recognition applicable to the program. Do not describe it as university/government recognized unless such recognition officially exists."),
-        ICFaqItem(question="How can I enquire about Infection Control Nurse services?", answer="You can submit the enquiry form on this page or contact Nupun Home Health Care Services directly."),
+        ICFaqItem(question="How can I enquire about Infection Control Nurse services?", answer="You can submit the enquiry form on this page or contact Home Physio India directly."),
     ])
 
     # ── Enquiry Section ──────────────────────────────────

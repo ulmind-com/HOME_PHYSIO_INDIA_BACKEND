@@ -1,12 +1,12 @@
 import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
 
-MONGO = "mongodb+srv://ulmindorg_db_user:nupun123@cluster0.phsnman.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-PREFIX = "https://nupun-health-frontend.vercel.app"
+MONGO = "mongodb+srv://ulmindorg_db_user:homephysio123@cluster0.phsnman.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+PREFIX = "https://home-physio-india-frontend.vercel.app"
 
 async def main():
     client = AsyncIOMotorClient(MONGO)
-    db = client["nupun_health"]
+    db = client["home_physio_india"]
 
     # 3. Update Settings (Comprehensive Services & Hero Slides)
     settings = db["website_settings"].find({})

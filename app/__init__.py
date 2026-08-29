@@ -1,3 +1,3 @@
-"""Nupun Home Health Care Services - Backend application package."""
+"""Home Physio India - Backend application package."""
 
 __version__ = "1.0.0"

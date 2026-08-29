@@ -1,6 +1,6 @@
-# Nupun Home Health Care Services — Backend API
+# Home Physio India — Backend API
 
-A production-grade, **API-only** backend for the *Nupun Home Health Care Services*
+A production-grade, **API-only** backend for the *Home Physio India*
 platform. It powers both the admin panel and the public website (services,
 bookings, medical-equipment rentals, careers, blogs, videos, testimonials, FAQs,
 contact, settings/SEO, uploads, notifications and analytics).
@@ -150,7 +150,7 @@ On first startup the app automatically:
 ```bash
 curl -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@nupunhealth.com","password":"Admin@12345"}'
+  -d '{"email":"admin@homephysioindia.com","password":"Admin@12345"}'
 ```
 
 Use the returned `access_token` as `Authorization: Bearer <token>`.
@@ -214,7 +214,7 @@ gunicorn app.main:app --worker-class uvicorn.workers.UvicornWorker --workers 4 -
 
 | Variable | Description | Example |
 | --- | --- | --- |
-| `APP_NAME` | Display name | `Nupun Home Health Care Services` |
+| `APP_NAME` | Display name | `Home Physio India` |
 | `APP_ENV` | `development` / `production` | `development` |
 | `DEBUG` | Debug mode & reload | `true` |
 | `API_V1_PREFIX` | API base path | `/api/v1` |
@@ -225,7 +225,7 @@ gunicorn app.main:app --worker-class uvicorn.workers.UvicornWorker --workers 4 -
 | `REFRESH_TOKEN_EXPIRE_DAYS` | Refresh-token TTL | `7` |
 | `PASSWORD_RESET_EXPIRE_MINUTES` | Reset-token TTL | `30` |
 | `MONGODB_URL` | Atlas connection string (**required**) | `mongodb+srv://...` |
-| `MONGODB_DB_NAME` | Database name | `nupun_health` |
+| `MONGODB_DB_NAME` | Database name | `home_physio_india` |
 | `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud | `l1on8azb` |
 | `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | Cloudinary creds | — |
 | `SMTP_HOST` / `SMTP_PORT` | SMTP server | `smtp.gmail.com` / `587` |
@@ -289,4 +289,4 @@ plus per-module filters like `status`, `category_id`, `is_featured`.
 
 ## 📄 License
 
-Proprietary — © Nupun Home Health Care Services.
+Proprietary — © Home Physio India.

@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     )
 
     # ---- Application ----
-    APP_NAME: str = "Nupun Home Health Care Services"
+    APP_NAME: str = "Home Physio India"
     APP_ENV: str = "development"
     DEBUG: bool = True
     API_V1_PREFIX: str = "/api/v1"
@@ -44,7 +44,7 @@ class Settings(BaseSettings):
 
     # ---- Database ----
     MONGODB_URL: str
-    MONGODB_DB_NAME: str = "nupun_health"
+    MONGODB_DB_NAME: str = "home_physio_india"
 
     # ---- Cloudinary ----
     CLOUDINARY_CLOUD_NAME: str = ""
@@ -58,7 +58,7 @@ class Settings(BaseSettings):
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
     SMTP_FROM_EMAIL: str = ""
-    SMTP_FROM_NAME: str = "Nupun Home Health Care Services"
+    SMTP_FROM_NAME: str = "Home Physio India"
     SMTP_TLS: bool = True
     SMTP_SSL: bool = False
     ADMIN_NOTIFICATION_EMAIL: str = ""
@@ -77,7 +77,7 @@ class Settings(BaseSettings):
 
     # ---- Bootstrap admin ----
     FIRST_ADMIN_NAME: str = "Super Admin"
-    FIRST_ADMIN_EMAIL: str = "admin@nupunhealth.com"
+    FIRST_ADMIN_EMAIL: str = "admin@homephysioindia.com"
     FIRST_ADMIN_PASSWORD: str = "Admin@1234Secure!"
 
     @property
