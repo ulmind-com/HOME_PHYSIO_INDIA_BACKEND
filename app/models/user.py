@@ -28,6 +28,7 @@ class User(TimestampedDocument):
     # RBAC: a single role slug plus any directly-granted extra permissions.
     role: str = "admin"
     extra_permissions: List[str] = Field(default_factory=list)
+    user_type: str = "admin"  # Reference to UserType slug
 
     is_active: bool = True
     is_superuser: bool = False

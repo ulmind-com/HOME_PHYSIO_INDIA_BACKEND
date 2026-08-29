@@ -20,6 +20,7 @@ class UserCreate(BaseModel):
     phone: Optional[str] = Field(None, max_length=20)
     role: str = "admin"
     extra_permissions: List[str] = Field(default_factory=list)
+    user_type: str = "admin"
     is_active: bool = True
     is_superuser: bool = False
 
@@ -45,6 +46,7 @@ class UserUpdate(BaseModel):
     phone: Optional[str] = Field(None, max_length=20)
     role: Optional[str] = None
     extra_permissions: Optional[List[str]] = None
+    user_type: Optional[str] = None
     is_active: Optional[bool] = None
     is_superuser: Optional[bool] = None
 
@@ -58,6 +60,7 @@ class UserResponse(IdTimestampSchema):
     avatar: Optional[ImageAsset] = None
     role: str
     extra_permissions: List[str] = Field(default_factory=list)
+    user_type: str
     is_active: bool
     is_superuser: bool
     last_login_at: Optional[dt.datetime] = None

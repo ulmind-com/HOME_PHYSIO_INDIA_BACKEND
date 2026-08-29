@@ -8,6 +8,7 @@ from app.core.permissions import DEFAULT_ROLES, all_permission_codes
 from app.core.security import hash_password
 from app.models.rbac import Permission, Role
 from app.models.user import User
+from app.models.user_type import UserType
 
 logger = get_logger(__name__)
 
@@ -70,8 +71,21 @@ async def seed_admin() -> None:
     logger.info("Seeded bootstrap admin", extra={"email": email})
 
 
+async def seed_user_types() -> None:
+    """Ensure core user types exist."""
+    core_types = [
+        {"name": "Admin", "slug": "admin", "description": "System Administrator"},
+        {"name": "Patient", "slug": "patient", "description": "Patient Account"}
+    ]
+    for ct in core_types:
+        if await UserType.find_one({"slug": ct["slug"]}) is None:
+            await UserType(name=ct["name"], slug=ct["slug"], description=ct["description"], is_core=True).insert()
+            logger.info("Seeded core user type", extra={"slug": ct["slug"]})
+
+
 async def run_seed() -> None:
     """Run all seeders in order (safe to run on every startup)."""
     await seed_permissions()
     await seed_roles()
+    await seed_user_types()
     await seed_admin()

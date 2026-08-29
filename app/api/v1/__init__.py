@@ -20,12 +20,14 @@ from app.api.v1.staff.router import router as staff_router
 from app.api.v1.testimonials.router import router as testimonials_router
 from app.api.v1.uploads.router import router as uploads_router
 from app.api.v1.users.router import router as users_router
+from app.api.v1.user_types.router import router as user_types_router
 from app.api.v1.videos.router import router as videos_router
 
 api_router = APIRouter()
 
 api_router.include_router(auth_router)
 api_router.include_router(users_router)
+api_router.include_router(user_types_router)
 api_router.include_router(dashboard_router)
 api_router.include_router(services_router)
 api_router.include_router(bookings_router)
