@@ -38,6 +38,7 @@ RESOURCES = [
     "media",
     "notifications",
     "activity_logs",
+    "medical_reports",
 ]
 
 
@@ -93,7 +94,7 @@ DEFAULT_ROLES: Dict[str, dict] = {
         "description": "Handle bookings, rentals, contacts and applications.",
         "permissions": [
             _perm(r, a)
-            for r in ("bookings", "rentals", "contacts", "applications", "patients")
+            for r in ("bookings", "rentals", "contacts", "applications", "patients", "medical_reports")
             for a in (VIEW, UPDATE)
         ]
         + [_perm("dashboard", VIEW), _perm("notifications", VIEW)],
