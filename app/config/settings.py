@@ -72,6 +72,10 @@ class Settings(BaseSettings):
     RATE_LIMIT_DEFAULT: str = "200/minute"
     RATE_LIMIT_AUTH: str = "10/minute"
 
+    # ---- Firebase ----
+    FIREBASE_PROJECT_ID: str = ""
+    FIREBASE_SERVICE_ACCOUNT_PATH: str = ""
+
     # ---- Frontend ----
     FRONTEND_URL: str = "http://localhost:3000"
 
@@ -106,6 +110,11 @@ class Settings(BaseSettings):
             and self.CLOUDINARY_API_KEY
             and self.CLOUDINARY_API_SECRET
         )
+
+    @property
+    def firebase_enabled(self) -> bool:
+        """Return ``True`` only when Firebase project ID is configured."""
+        return bool(self.FIREBASE_PROJECT_ID)
 
 
 @lru_cache

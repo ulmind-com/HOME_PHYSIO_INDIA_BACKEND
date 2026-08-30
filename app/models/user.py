@@ -21,9 +21,12 @@ class User(TimestampedDocument):
 
     name: str
     email: Indexed(EmailStr, unique=True)  # type: ignore[valid-type]
-    hashed_password: str
+    hashed_password: str = ""  # Empty for phone-auth-only users
     phone: Optional[str] = None
     avatar: Optional[ImageAsset] = None
+
+    # Firebase Phone Auth linkage
+    firebase_uid: Optional[str] = None
 
     # RBAC: a single role slug plus any directly-granted extra permissions.
     role: str = "admin"
@@ -44,6 +47,7 @@ class User(TimestampedDocument):
             [("email", pymongo.ASCENDING)],
             [("role", pymongo.ASCENDING)],
             [("is_active", pymongo.ASCENDING)],
+            [("firebase_uid", pymongo.ASCENDING)],
         ]
 
 

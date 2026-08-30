@@ -19,8 +19,10 @@ from app.schemas.auth import (
 )
 from app.schemas.user import ProfileUpdate, UserResponse
 from app.services.auth_service import auth_service
+from app.api.v1.auth.phone_auth import router as phone_router
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+router.include_router(phone_router)
 
 
 def _client_ip(request: Request) -> Optional[str]:
