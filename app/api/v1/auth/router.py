@@ -161,11 +161,9 @@ async def upload_avatar(
 ) -> dict:
     """Upload and set the authenticated user's profile picture."""
     contents = await read_validated_image(file, MAX_IMAGE_BYTES)
-    file_asset = await cloudinary_service.upload_file(
+    file_asset = await cloudinary_service.upload_image(
         contents,
         folder="home_physio_india/avatars",
-        resource_type="image",
-        original_filename=file.filename,
     )
     user.avatar = file_asset.model_dump()
     await user.save()
