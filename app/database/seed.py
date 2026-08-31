@@ -58,7 +58,12 @@ async def seed_roles() -> None:
 async def seed_admin() -> None:
     """Create the bootstrap super-admin user if none exists."""
     email = settings.FIRST_ADMIN_EMAIL.lower().strip()
-    if await User.find_one({"email": email}) is not None:
+    user = await User.find_one({"email": email})
+    if user is not None:
+        if not user.is_email_verified:
+            user.is_email_verified = True
+            await user.save()
+            logger.info("Updated bootstrap admin to verified", extra={"email": email})
         return
     await User(
         name=settings.FIRST_ADMIN_NAME,
@@ -67,6 +72,7 @@ async def seed_admin() -> None:
         role="super_admin",
         is_active=True,
         is_superuser=True,
+        is_email_verified=True,
     ).insert()
     logger.info("Seeded bootstrap admin", extra={"email": email})
 
