@@ -22,7 +22,8 @@ from app.core.exceptions import BadRequestException, NotFoundException
 from app.core.limiter import limiter
 from app.core.pagination import PaginationParams, pagination_params
 from app.core.responses import success_response
-from app.dependencies.auth import ActorContext, require_permission
+from app.dependencies.auth import ActorContext, require_permission, get_current_active_user
+from app.models.user import User
 from app.models.career import CareerJob, JobApplication, JobCategory
 from app.models.enums import (
     ActivityAction,
@@ -127,6 +128,7 @@ async def create_application(
     certificates: Optional[str] = Form(None, max_length=1000),
     cover_letter: Optional[str] = Form(None, max_length=5000),
     resume: Optional[UploadFile] = None,
+    current_user: User = Depends(get_current_active_user),
 ) -> dict:
     """Public endpoint: submit a job application with an optional resume file.
 
@@ -134,10 +136,8 @@ async def create_application(
     (blocking stored-XSS), the email is format-validated, and the resume is
     checked by extension, MIME type, size and real file signature.
     """
-    try:
-        email = _email_validator.validate_python(email.strip())
-    except ValidationError:
-        raise BadRequestException("A valid email address is required")
+    # Explicitly use the authenticated user's email
+    email_address = current_user.email
 
     resume_asset = None
     if resume is not None:
@@ -155,7 +155,7 @@ async def create_application(
         job_id=sanitize_str(job_id),
         job_title=sanitize_str(job_title),
         full_name=sanitize_str(full_name),
-        email=email,
+        email=email_address,
         phone=sanitize_str(phone),
         experience=sanitize_str(experience),
         preferred_location=sanitize_str(preferred_location),
@@ -176,9 +176,10 @@ async def create_application(
         reference_id=str(application.id),
     )
     background_tasks.add_task(
-        email_service.send_application_confirmation,
-        email,
-        {"name": full_name, "job": job_title, "reference": application.reference},
+        email_service.send_application_received_email,
+        email_address,
+        full_name,
+        job_title,
     )
     return item_response(ApplicationResponse, application, "Application submitted")
 
@@ -218,6 +219,7 @@ async def get_application(
 async def update_application(
     application_id: str,
     payload: ApplicationStatusUpdate,
+    background_tasks: BackgroundTasks,
     actor: ActorContext = Depends(require_permission("applications", "update")),
 ) -> dict:
     app_doc = await _applications.get(application_id)
@@ -230,6 +232,18 @@ async def update_application(
         description=f"Application {payload.status}",
         ip_address=actor.ip_address, user_agent=actor.user_agent,
     )
+    # If accepted, update the user role to therapist
+    if payload.status == ApplicationStatus.ACCEPTED:
+        user = await User.find_one({"email": app_doc.email})
+        if user:
+            user.role = "therapist"
+            user.user_type = "therapist"
+            await user.save()
+            background_tasks.add_task(
+                email_service.send_application_accepted_email, 
+                user.email, user.name, app_doc.job_title
+            )
+            
     return item_response(ApplicationResponse, app_doc, "Application updated")
 
 
