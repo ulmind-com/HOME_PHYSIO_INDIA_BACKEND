@@ -8,7 +8,7 @@ import random
 import string
 from typing import Optional
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Response
 from pydantic import BaseModel, EmailStr, Field
 
 from app.config import settings
@@ -59,7 +59,7 @@ def _generate_otp() -> str:
 
 @router.post("/register", summary="Register a new patient account")
 @limiter.limit(settings.RATE_LIMIT_AUTH)
-async def register_account(request: Request, payload: RegisterRequest) -> dict:
+async def register_account(request: Request, response: Response, payload: RegisterRequest) -> dict:
     """Register an account and send a verification OTP via email."""
     email_lower = payload.email.lower().strip()
     
@@ -100,7 +100,7 @@ async def register_account(request: Request, payload: RegisterRequest) -> dict:
 
 @router.post("/verify-email", summary="Verify email using OTP")
 @limiter.limit(settings.RATE_LIMIT_AUTH)
-async def verify_email(request: Request, payload: VerifyEmailRequest) -> dict:
+async def verify_email(request: Request, response: Response, payload: VerifyEmailRequest) -> dict:
     """Verify the 6-digit OTP and issue JWT tokens."""
     email_lower = payload.email.lower().strip()
     user = await _users.find_one({"email": email_lower})
@@ -142,7 +142,7 @@ async def verify_email(request: Request, payload: VerifyEmailRequest) -> dict:
 
 @router.post("/resend-otp", summary="Resend email verification OTP")
 @limiter.limit(settings.RATE_LIMIT_AUTH)
-async def resend_otp(request: Request, payload: ResendOtpRequest) -> dict:
+async def resend_otp(request: Request, response: Response, payload: ResendOtpRequest) -> dict:
     """Resend a new 6-digit OTP to the unverified email."""
     email_lower = payload.email.lower().strip()
     user = await _users.find_one({"email": email_lower})
