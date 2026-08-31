@@ -29,17 +29,24 @@ def _ensure_initialized() -> None:
     try:
         import firebase_admin  # type: ignore[import-untyped]
         from firebase_admin import credentials  # type: ignore[import-untyped]
+        import json
 
-        if settings.FIREBASE_SERVICE_ACCOUNT_PATH:
+        if settings.FIREBASE_SERVICE_ACCOUNT_JSON:
+            cred_dict = json.loads(settings.FIREBASE_SERVICE_ACCOUNT_JSON)
+            cred = credentials.Certificate(cred_dict)
+            _firebase_app = firebase_admin.initialize_app(cred)
+            logger.info("Firebase Admin SDK initialized using JSON env variable")
+        elif settings.FIREBASE_SERVICE_ACCOUNT_PATH:
             cred = credentials.Certificate(settings.FIREBASE_SERVICE_ACCOUNT_PATH)
             _firebase_app = firebase_admin.initialize_app(cred)
+            logger.info("Firebase Admin SDK initialized using service account file")
         else:
             # Use project ID only (works for ID token verification without
             # needing a full service account key in development).
             _firebase_app = firebase_admin.initialize_app(
                 options={"projectId": settings.FIREBASE_PROJECT_ID}
             )
-        logger.info("Firebase Admin SDK initialized (project: %s)", settings.FIREBASE_PROJECT_ID)
+            logger.info("Firebase Admin SDK initialized (project ID only: %s)", settings.FIREBASE_PROJECT_ID)
     except Exception as exc:
         logger.error("Failed to initialise Firebase Admin SDK: %s", exc)
         raise

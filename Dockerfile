@@ -1,27 +1,29 @@
 # ---- Home Physio India API ----
 FROM python:3.13-slim AS base
 
+# Install uv (blazing fast python package manager)
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
 # Prevent Python from writing .pyc files and buffering stdout/stderr.
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# System deps (build-essential only needed if wheels must compile).
+# System deps
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies first (better layer caching).
-COPY requirements.txt .
-RUN pip install --upgrade pip && pip install -r requirements.txt
+# Install dependencies using uv. We copy just the pyproject.toml and lockfile first
+# to leverage Docker layer caching for dependencies.
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-cache --no-install-project
 
 # Copy application source.
 COPY . .
 
-# Run as a non-root user.
+# Run as a non-root user for security.
 RUN adduser --disabled-password --gecos "" appuser \
     && chown -R appuser:appuser /app
 USER appuser
@@ -32,8 +34,8 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
     CMD curl -fsS http://localhost:8000/health || exit 1
 
-# Gunicorn with Uvicorn workers for production concurrency.
-CMD ["gunicorn", "app.main:app", \
+# Start the application using uv's managed environment
+CMD ["uv", "run", "gunicorn", "app.main:app", \
      "--worker-class", "uvicorn.workers.UvicornWorker", \
      "--workers", "4", \
      "--bind", "0.0.0.0:8000", \

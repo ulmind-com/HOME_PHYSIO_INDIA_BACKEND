@@ -69,6 +69,7 @@ class Settings(BaseSettings):
     # ---- Firebase ----
     FIREBASE_PROJECT_ID: str = ""
     FIREBASE_SERVICE_ACCOUNT_PATH: str = ""
+    FIREBASE_SERVICE_ACCOUNT_JSON: str = ""
 
     # ---- Frontend ----
     FRONTEND_URL: str = "http://localhost:3000"
