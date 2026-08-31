@@ -87,7 +87,7 @@ async def update_social_links(
 async def get_seo(page_key: str = Query("global")) -> dict:
     doc = await _seo.find_one({"page_key": page_key})
     if doc is None:
-        raise NotFoundException("SEO settings not found for this page")
+        doc = SEOSettings(page_key=page_key)
     return item_response(SEOSettingsResponse, doc)
 
 
