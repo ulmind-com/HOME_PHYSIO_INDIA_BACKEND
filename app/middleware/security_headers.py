@@ -15,7 +15,7 @@ _SECURITY_HEADERS = {
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
-    "Cross-Origin-Opener-Policy": "same-origin",
+    "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
     "X-XSS-Protection": "1; mode=block",
 }
 

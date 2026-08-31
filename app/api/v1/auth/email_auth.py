@@ -1,6 +1,6 @@
 """Email & Password registration and OTP verification flows."""
 
-from __future__ import annotations
+
 
 import datetime as dt
 import logging

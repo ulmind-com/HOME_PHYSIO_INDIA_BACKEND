@@ -6,7 +6,7 @@ it with the Firebase Admin SDK, finds or creates the patient in MongoDB,
 and issues our own JWT access + refresh token pair.
 """
 
-from __future__ import annotations
+
 
 import logging
 from typing import Optional
