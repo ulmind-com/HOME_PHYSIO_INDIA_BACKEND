@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.middleware import SlowAPIMiddleware
 
+import time
 from app import __version__
 from app.api.routers import elder_care
 from app.api.v1 import api_router
@@ -39,6 +40,8 @@ All responses follow a consistent envelope::
     { "success": true, "message": "", "data": {}, "errors": null }
 """
 
+
+START_TIME = time.time()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -101,15 +104,32 @@ def create_app() -> FastAPI:
         )
 
     @app.get("/health", tags=["Health"], summary="Health check")
-    async def health() -> dict:
+    async def health(response: __import__('fastapi').Response) -> dict:
         db_ok = await ping()
+        
+        # Calculate uptime
+        uptime_seconds = int(time.time() - START_TIME)
+        
+        # Check active services based on config
+        services = {
+            "database": "connected" if db_ok else "disconnected",
+            "cloudinary": "configured" if settings.cloudinary_enabled else "missing_config",
+            "firebase": "configured" if settings.firebase_enabled else "missing_config",
+            "email_resend": "configured" if settings.email_enabled else "missing_config",
+        }
+        
+        status_code = 200 if db_ok else 503
+        response.status_code = status_code
+        
         return success_response(
             data={
                 "status": "ok" if db_ok else "degraded",
-                "database": "connected" if db_ok else "disconnected",
+                "uptime_seconds": uptime_seconds,
+                "environment": settings.APP_ENV,
                 "version": __version__,
+                "services": services
             },
-            message="Health check",
+            message="Health check completed",
         )
 
     return app
