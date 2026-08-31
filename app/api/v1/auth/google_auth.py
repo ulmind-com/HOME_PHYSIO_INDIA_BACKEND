@@ -56,11 +56,17 @@ async def google_login(request: Request, payload: GoogleLoginRequest = Body(...)
     4. Backend finds or creates a ``User`` document with ``user_type='patient'``.
     5. Backend issues its own JWT access + refresh token pair.
     """
+    logger.info("Google login attempt received")
+    
     # ---- Step 1: Verify Firebase token ----
     try:
         decoded = await verify_firebase_token(payload.id_token)
     except ValueError as exc:
+        logger.warning("Firebase token verification failed: %s", exc)
         raise UnauthorizedException(str(exc))
+    except Exception as exc:
+        logger.error("Unexpected error verifying Firebase token: %s", exc, exc_info=True)
+        raise UnauthorizedException(f"Token verification failed: {exc}")
 
     firebase_uid: str = decoded.get("uid", "")
     email: str = decoded.get("email", "")
@@ -70,6 +76,8 @@ async def google_login(request: Request, payload: GoogleLoginRequest = Body(...)
         raise BadRequestException("Firebase token missing uid")
     if not email:
         raise BadRequestException("Firebase token missing email")
+
+    logger.info("Firebase token verified for: %s (uid: %s)", email, firebase_uid)
 
     # ---- Step 2: Find or create user (upsert pattern) ----
     user = await _users.find_one({"email": email.lower()})
@@ -108,6 +116,7 @@ async def google_login(request: Request, payload: GoogleLoginRequest = Body(...)
 
         if update_data:
             await _users.update(user, update_data)
+        logger.info("Existing user logged in via Google: %s (%s)", user.id, email)
 
     if not user.is_active:
         raise UnauthorizedException("Your account is disabled")
