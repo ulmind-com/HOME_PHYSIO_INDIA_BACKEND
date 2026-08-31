@@ -51,6 +51,8 @@ class AuthService:
             raise UnauthorizedException("Invalid email or password")
         if not user.is_active:
             raise UnauthorizedException("Your account is disabled")
+        if not user.is_email_verified:
+            raise UnauthorizedException("EMAIL_NOT_VERIFIED")
         return user
 
     async def issue_tokens(

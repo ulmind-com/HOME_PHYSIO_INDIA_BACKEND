@@ -115,6 +115,18 @@ class EmailService:
         )
         return await self.send(to, "Application Received", body)
 
+    async def send_verification_otp(self, to: str, otp: str) -> bool:
+        body = (
+            "<p>Welcome to Home Physio India!</p>"
+            "<p>Please use the following 6-digit OTP to verify your email address. This code is valid for 10 minutes.</p>"
+            f'<div style="text-align:center;margin:30px 0;">'
+            f'<span style="font-size:32px;font-weight:bold;letter-spacing:8px;background:#f3f4f6;padding:12px 24px;border-radius:8px;color:#111;">{otp}</span>'
+            f'</div>'
+            "<p>If you did not sign up for an account, you can safely ignore this email.</p>"
+        )
+        text_fallback = f"Your email verification OTP is {otp}. It is valid for 10 minutes."
+        return await self.send(to, "Verify Your Email", body, text_fallback)
+
     async def send_password_reset(self, to: str, reset_link: str) -> bool:
         body = (
             "<p>We received a request to reset your password.</p>"

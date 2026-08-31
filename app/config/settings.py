@@ -75,9 +75,9 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost:3000"
 
     # ---- Bootstrap admin ----
-    FIRST_ADMIN_NAME: str = "Super Admin"
-    FIRST_ADMIN_EMAIL: str = "admin@homephysioindia.com"
-    FIRST_ADMIN_PASSWORD: str = "Admin@1234Secure!"
+    FIRST_ADMIN_NAME: str = "Admin"
+    FIRST_ADMIN_EMAIL: str = "homephysioindia1@gmail.com"
+    FIRST_ADMIN_PASSWORD: str = "admin123"
 
     @property
     def cors_origins(self) -> List[str]:

@@ -25,8 +25,13 @@ class User(TimestampedDocument):
     phone: Optional[str] = None
     avatar: Optional[ImageAsset] = None
 
-    # Firebase Phone Auth linkage
-    firebase_uid: Optional[str] = None
+    # Google OAuth linkage
+    google_uid: Optional[str] = None
+    
+    # Email Verification
+    is_email_verified: bool = False
+    email_verification_otp: Optional[str] = None
+    otp_expires_at: Optional[dt.datetime] = None
 
     # RBAC: a single role slug plus any directly-granted extra permissions.
     role: str = "admin"
@@ -47,7 +52,7 @@ class User(TimestampedDocument):
             [("email", pymongo.ASCENDING)],
             [("role", pymongo.ASCENDING)],
             [("is_active", pymongo.ASCENDING)],
-            [("firebase_uid", pymongo.ASCENDING)],
+            [("google_uid", pymongo.ASCENDING)],
         ]
 
 
