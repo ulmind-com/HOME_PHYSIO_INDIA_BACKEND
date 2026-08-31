@@ -26,7 +26,7 @@ _BASE_TEMPLATE = """\
     <h2 style="margin:0">{{ brand }}</h2>
   </div>
   <div style="padding:24px;color:#333;line-height:1.6">
-    {{ body }}
+    {{ body | safe }}
   </div>
   <div style="background:#f9fafb;color:#888;padding:16px 24px;font-size:12px">
     &copy; {{ brand }}. This is an automated message, please do not reply.
