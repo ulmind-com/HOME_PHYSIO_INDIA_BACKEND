@@ -23,6 +23,7 @@ class User(TimestampedDocument):
     email: Indexed(EmailStr, unique=True)  # type: ignore[valid-type]
     hashed_password: str = ""  # Empty for phone-auth-only users
     phone: Optional[str] = None
+    address: Optional[str] = None
     avatar: Optional[ImageAsset] = None
 
     # Google OAuth linkage

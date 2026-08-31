@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, UploadFile, File
 
 from app.config import settings
 from app.core.limiter import limiter
@@ -21,6 +21,9 @@ from app.schemas.user import ProfileUpdate, UserResponse
 from app.services.auth_service import auth_service
 from app.api.v1.auth.google_auth import router as google_router
 from app.api.v1.auth.email_auth import router as email_router
+from app.services.cloudinary_service import cloudinary_service
+from app.utils.files import read_validated_image, MAX_IMAGE_BYTES
+from app.models.booking import Booking
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 router.include_router(google_router)
@@ -146,4 +149,56 @@ async def update_me(
     return success_response(
         data=UserResponse.model_validate(user).model_dump(mode="json"),
         message="Profile updated",
+    )
+
+
+@router.post("/me/avatar", summary="Upload profile picture")
+@limiter.limit(settings.RATE_LIMIT_AUTH)
+async def upload_avatar(
+    request: Request,
+    file: UploadFile = File(...),
+    user: User = Depends(get_current_active_user),
+) -> dict:
+    """Upload and set the authenticated user's profile picture."""
+    contents = await read_validated_image(file, MAX_IMAGE_BYTES)
+    file_asset = await cloudinary_service.upload_file(
+        contents,
+        folder="home_physio_india/avatars",
+        resource_type="image",
+        original_filename=file.filename,
+    )
+    user.avatar = file_asset.model_dump()
+    await user.save()
+    return success_response(
+        data=UserResponse.model_validate(user).model_dump(mode="json"),
+        message="Profile picture updated",
+    )
+
+
+@router.get("/me/bookings", summary="Get historical bookings")
+async def get_my_bookings(user: User = Depends(get_current_active_user)) -> dict:
+    """Return historical bookings associated with the authenticated user."""
+    # Find bookings matching the user's ID, email, or phone.
+    query = {
+        "$or": [
+            {"patient_id": str(user.id)},
+        ]
+    }
+    if user.email:
+        query["$or"].append({"contact_email": user.email})
+    if user.phone:
+        query["$or"].append({"contact_phone": user.phone})
+
+    bookings = await Booking.find(query).sort("-created_at").to_list()
+    # We can serialize them directly or use a response schema.
+    # We'll map them to a basic list of dicts safely.
+    data = []
+    for b in bookings:
+        doc = b.model_dump(mode="json")
+        doc["id"] = doc.pop("_id", None) or doc.get("id")
+        data.append(doc)
+
+    return success_response(
+        data=data,
+        message="Bookings fetched successfully",
     )

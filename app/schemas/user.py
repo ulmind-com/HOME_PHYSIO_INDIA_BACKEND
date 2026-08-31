@@ -57,6 +57,7 @@ class UserResponse(IdTimestampSchema):
     name: str
     email: EmailStr
     phone: Optional[str] = None
+    address: Optional[str] = None
     avatar: Optional[ImageAsset] = None
     role: str
     extra_permissions: List[str] = Field(default_factory=list)
@@ -71,6 +72,7 @@ class ProfileUpdate(BaseModel):
 
     name: Optional[str] = Field(None, min_length=2, max_length=120)
     phone: Optional[str] = Field(None, max_length=20)
+    address: Optional[str] = Field(None, max_length=500)
 
 
 # ---- Roles & permissions ----
