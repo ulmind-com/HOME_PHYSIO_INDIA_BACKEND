@@ -52,15 +52,9 @@ class Settings(BaseSettings):
     CLOUDINARY_API_SECRET: str = ""
     CLOUDINARY_URL: str = ""
 
-    # ---- Email (SMTP) ----
-    SMTP_HOST: str = ""
-    SMTP_PORT: int = 587
-    SMTP_USER: str = ""
-    SMTP_PASSWORD: str = ""
-    SMTP_FROM_EMAIL: str = ""
-    SMTP_FROM_NAME: str = "Home Physio India"
-    SMTP_TLS: bool = True
-    SMTP_SSL: bool = False
+    # ---- Email (Resend) ----
+    RESEND_API_KEY: str = ""
+    MAIL_ADDRESS: str = "noreply@samiransamanta.in"
     ADMIN_NOTIFICATION_EMAIL: str = ""
 
     # ---- CORS ----
@@ -99,8 +93,8 @@ class Settings(BaseSettings):
 
     @property
     def email_enabled(self) -> bool:
-        """Return ``True`` only when SMTP is fully configured."""
-        return bool(self.SMTP_HOST and self.SMTP_USER and self.SMTP_PASSWORD)
+        """Return ``True`` only when Resend credentials are present."""
+        return bool(self.RESEND_API_KEY)
 
     @property
     def cloudinary_enabled(self) -> bool:

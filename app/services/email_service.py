@@ -1,16 +1,16 @@
-"""SMTP email service using aiosmtplib + Jinja2 templates.
+"""Resend email service using Jinja2 templates.
 
-Designed to be scheduled via FastAPI ``BackgroundTasks`` so the request path is
-never blocked by SMTP latency. When SMTP is not configured the service logs the
-message instead of raising, so local development works without credentials.
+Designed to be scheduled via FastAPI ``BackgroundTasks``. 
+When Resend is not configured the service logs the message instead of raising, 
+so local development works without credentials.
 """
 
 from __future__ import annotations
 
-from email.message import EmailMessage
 from typing import Any, Dict, Optional
+import asyncio
+import resend
 
-import aiosmtplib
 from jinja2 import Environment, select_autoescape
 
 from app.config import settings
@@ -36,14 +36,37 @@ _BASE_TEMPLATE = """\
 
 
 class EmailService:
-    """Send transactional emails over SMTP."""
+    """Send transactional emails over Resend API."""
 
     def __init__(self) -> None:
         self.enabled = settings.email_enabled
+        if self.enabled:
+            resend.api_key = settings.RESEND_API_KEY
 
     def _render(self, body_html: str) -> str:
         template = _jinja.from_string(_BASE_TEMPLATE)
-        return template.render(brand=settings.SMTP_FROM_NAME, body=body_html)
+        return template.render(brand=settings.APP_NAME, body=body_html)
+
+    def _sync_send(self, to: str, subject: str, body_html: str, text_fallback: Optional[str]) -> bool:
+        try:
+            params = {
+                "from": f"{settings.APP_NAME} <{settings.MAIL_ADDRESS}>",
+                "to": [to],
+                "subject": subject,
+                "html": self._render(body_html),
+            }
+            if text_fallback:
+                params["text"] = text_fallback
+            
+            resend.Emails.send(params)
+            logger.info("Email sent via Resend", extra={"to": to, "subject": subject})
+            return True
+        except Exception as exc:
+            logger.error(
+                "Email send failed via Resend",
+                extra={"to": to, "subject": subject, "error": str(exc)},
+            )
+            return False
 
     async def send(
         self,
@@ -60,32 +83,8 @@ class EmailService:
             )
             return False
 
-        message = EmailMessage()
-        message["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM_EMAIL}>"
-        message["To"] = to
-        message["Subject"] = subject
-        message.set_content(text_fallback or "Please view this email in HTML.")
-        message.add_alternative(self._render(body_html), subtype="html")
-
-        try:
-            await aiosmtplib.send(
-                message,
-                hostname=settings.SMTP_HOST,
-                port=settings.SMTP_PORT,
-                username=settings.SMTP_USER,
-                password=settings.SMTP_PASSWORD,
-                start_tls=settings.SMTP_TLS,
-                use_tls=settings.SMTP_SSL,
-                timeout=30,
-            )
-            logger.info("Email sent", extra={"to": to, "subject": subject})
-            return True
-        except Exception as exc:  # noqa: BLE001 - never break the request path
-            logger.error(
-                "Email send failed",
-                extra={"to": to, "subject": subject, "error": str(exc)},
-            )
-            return False
+        # Resend Python SDK is synchronous, so we run it in a thread to avoid blocking the event loop
+        return await asyncio.to_thread(self._sync_send, to, subject, body_html, text_fallback)
 
     # ---- Convenience templated senders ----
 
