@@ -88,6 +88,31 @@ class EmailService:
 
     # ---- Convenience templated senders ----
 
+    async def send_welcome_email(self, to: str, name: str) -> bool:
+        body = f"""
+        <div style="text-align: center; padding: 32px 20px;">
+            <div style="background-color: #f0fdfa; display: inline-block; padding: 16px; border-radius: 50%; margin-bottom: 24px;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#0f766e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+            </div>
+            <h1 style="color: #0f766e; font-size: 28px; margin-bottom: 16px; font-weight: 700;">Welcome to {settings.APP_NAME}!</h1>
+            <p style="font-size: 16px; color: #4b5563; margin-bottom: 32px; line-height: 1.6; max-width: 480px; margin-left: auto; margin-right: auto;">
+                Hi <b>{name}</b>,<br><br>
+                We're thrilled to have you! Your account has been successfully verified and created. 
+                You can now easily book top-tier physiotherapy sessions, manage your health records, and connect with our certified professionals.
+            </p>
+            <a href="{settings.FRONTEND_URL}" style="display: inline-block; background-color: #0f766e; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(15, 118, 110, 0.2);">
+                Explore Your Dashboard
+            </a>
+            <p style="font-size: 14px; color: #6b7280; margin-top: 48px;">
+                If you have any questions or need assistance, feel free to reply directly to this email. Our support team is always here for you.
+            </p>
+        </div>
+        """
+        return await self.send(to, f"Welcome to {settings.APP_NAME} 🎉", body)
+
     async def send_booking_confirmation(self, to: str, context: Dict[str, Any]) -> bool:
         body = (
             f"<p>Dear {context.get('name', 'Customer')},</p>"

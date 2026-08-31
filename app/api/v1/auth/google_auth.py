@@ -11,7 +11,7 @@ and issues our own JWT access + refresh token pair.
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Request, Body, Response
+from fastapi import APIRouter, Request, Body, Response, BackgroundTasks
 from pydantic import BaseModel, Field
 
 from app.config import settings
@@ -23,6 +23,7 @@ from app.repositories.base import BaseRepository
 from app.schemas.user import UserResponse
 from app.services.auth_service import auth_service
 from app.services.firebase_service import verify_firebase_token
+from app.services.email_service import email_service
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ def _client_ip(request: Request) -> Optional[str]:
 
 @router.post("/google-login", summary="Patient Google login via Firebase")
 @limiter.limit(settings.RATE_LIMIT_AUTH)
-async def google_login(request: Request, response: Response, payload: GoogleLoginRequest = Body(...)) -> dict:
+async def google_login(request: Request, response: Response, bg_tasks: BackgroundTasks, payload: GoogleLoginRequest = Body(...)) -> dict:
     """Verify a Firebase ID token (Google), find-or-create the patient, and issue JWTs.
 
     Flow:
@@ -103,6 +104,9 @@ async def google_login(request: Request, response: Response, payload: GoogleLogi
         )
         await _users.create(user)
         logger.info("Created new patient user via Google: %s (%s)", user.id, email)
+        
+        # Send welcome email in background
+        bg_tasks.add_task(email_service.send_welcome_email, email, user.name)
     else:
         # Link the Google UID if not already linked
         update_data = {}

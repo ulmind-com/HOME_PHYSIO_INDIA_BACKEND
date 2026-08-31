@@ -8,7 +8,7 @@ import random
 import string
 from typing import Optional
 
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, Request, Response, BackgroundTasks
 from pydantic import BaseModel, EmailStr, Field
 
 from app.config import settings
@@ -100,7 +100,7 @@ async def register_account(request: Request, response: Response, payload: Regist
 
 @router.post("/verify-email", summary="Verify email using OTP")
 @limiter.limit(settings.RATE_LIMIT_AUTH)
-async def verify_email(request: Request, response: Response, payload: VerifyEmailRequest) -> dict:
+async def verify_email(request: Request, response: Response, bg_tasks: BackgroundTasks, payload: VerifyEmailRequest) -> dict:
     """Verify the 6-digit OTP and issue JWT tokens."""
     email_lower = payload.email.lower().strip()
     user = await _users.find_one({"email": email_lower})
@@ -127,6 +127,9 @@ async def verify_email(request: Request, response: Response, payload: VerifyEmai
     ip = _client_ip(request)
     ua = request.headers.get("User-Agent")
     access_token, refresh_token = await auth_service.issue_tokens(user, ip_address=ip, user_agent=ua)
+    
+    # Send welcome email in background
+    bg_tasks.add_task(email_service.send_welcome_email, user.email, user.name)
 
     return success_response(
         data={
