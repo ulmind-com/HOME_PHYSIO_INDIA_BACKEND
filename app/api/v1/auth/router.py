@@ -156,6 +156,7 @@ async def update_me(
 @limiter.limit(settings.RATE_LIMIT_AUTH)
 async def upload_avatar(
     request: Request,
+    response: Response,
     file: UploadFile = File(...),
     user: User = Depends(get_current_active_user),
 ) -> dict:
