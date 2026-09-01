@@ -25,6 +25,10 @@ class User(TimestampedDocument):
     phone: Optional[str] = None
     address: Optional[str] = None
     avatar: Optional[ImageAsset] = None
+    
+    # Therapist specific fields
+    specialization: Optional[str] = None
+    experience_years: Optional[int] = None
 
     # Google OAuth linkage
     google_uid: Optional[str] = None

@@ -62,6 +62,8 @@ class UserResponse(IdTimestampSchema):
     phone: Optional[str] = None
     address: Optional[str] = None
     avatar: Optional[ImageAsset] = None
+    specialization: Optional[str] = None
+    experience_years: Optional[int] = None
     role: str
     extra_permissions: List[str] = Field(default_factory=list)
     user_type: str
