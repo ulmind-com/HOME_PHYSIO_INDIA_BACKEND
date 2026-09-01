@@ -21,7 +21,17 @@ router = APIRouter(prefix="/user-types", tags=["Users & Roles"])
 async def list_user_types() -> dict:
     """List all available user types."""
     user_types = await UserType.find_all().to_list()
-    data = [UserTypeResponse.model_validate(ut).model_dump(mode="json") for ut in user_types]
+    items = [UserTypeResponse.model_validate(ut).model_dump(mode="json") for ut in user_types]
+    
+    # Wrap in pagination format for frontend createCrudService compatibility
+    data = {
+        "items": items,
+        "pagination": {
+            "total": len(items),
+            "page": 1,
+            "page_size": max(len(items), 1)
+        }
+    }
     return success_response(data=data, message="User types fetched")
 
 
