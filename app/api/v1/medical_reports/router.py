@@ -17,6 +17,14 @@ from app.models.user import User
 from app.repositories.base import BaseRepository
 from app.schemas.medical_report import MedicalReportResponse, MedicalReportReview
 from app.services.cloudinary_service import cloudinary_service
+from app.utils.files import (
+    read_validated_image,
+    read_validated_upload,
+    IMAGE_TYPES,
+    DOC_TYPES,
+    MAX_IMAGE_BYTES,
+    MAX_FILE_BYTES,
+)
 
 router = APIRouter(prefix="/medical-reports", tags=["Medical Reports"])
 _reports: BaseRepository[MedicalReport] = BaseRepository(MedicalReport)
@@ -60,28 +68,30 @@ async def list_reports(
 async def create_report(
     title: str = Form(..., min_length=2, max_length=150),
     report_type: ReportType = Form(...),
-    patient_id: str = Form(...),
+    patient_id: str = Form(""),
     file: UploadFile = File(...),
     user: User = Depends(get_current_active_user),
 ) -> dict:
     """Upload a new medical report."""
-    if user.user_type == "patient" and patient_id != str(user.id):
-        raise ForbiddenException("Patients can only upload reports for themselves")
-        
-    if user.user_type != "patient":
+    # For patients, auto-set patient_id to their own ID
+    if user.user_type == "patient":
+        patient_id = str(user.id)
+    elif not patient_id:
+        raise BadRequestException("patient_id is required for non-patient uploads")
+    elif user.user_type != "patient":
         from app.dependencies.auth import _resolve_permissions
         from app.core.permissions import ALL
         perms = await _resolve_permissions(user)
         if ALL not in perms and "medical_reports:create" not in perms and "medical_reports:*" not in perms:
              raise ForbiddenException("Missing required permission: medical_reports:create")
 
-    file_bytes = await file.read()
-    if not file_bytes:
-        raise BadRequestException("Empty file uploaded")
-
-    # Determine if it's an image or file based on content type
+    # Validate file type and size
     is_image = file.content_type and file.content_type.startswith("image/")
-    
+    if is_image:
+        file_bytes = await read_validated_upload(file, IMAGE_TYPES, MAX_IMAGE_BYTES)
+    else:
+        file_bytes = await read_validated_upload(file, IMAGE_TYPES | DOC_TYPES, MAX_FILE_BYTES)
+
     if is_image:
         asset = await cloudinary_service.upload_image(file_bytes, folder="home_physio_india/medical_reports")
     else:
