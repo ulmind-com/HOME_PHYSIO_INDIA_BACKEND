@@ -7,9 +7,19 @@ from typing import List, Optional
 
 import pymongo
 from beanie import Indexed
-from pydantic import EmailStr, Field
+import uuid
+from pydantic import BaseModel, EmailStr, Field
 
-from app.models.base import ImageAsset, TimestampedDocument, utcnow
+from app.models.base import ImageAsset, FileAsset, TimestampedDocument, utcnow
+
+class TherapistDocument(BaseModel):
+    """A document/certificate uploaded by a therapist."""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    file: FileAsset
+    is_verified: bool = False
+    uploaded_at: dt.datetime = Field(default_factory=utcnow)
+    verified_at: Optional[dt.datetime] = None
 
 
 class User(TimestampedDocument):
@@ -29,6 +39,7 @@ class User(TimestampedDocument):
     # Therapist specific fields
     specialization: Optional[str] = None
     experience_years: Optional[int] = None
+    documents: List[TherapistDocument] = Field(default_factory=list)
 
     # Google OAuth linkage
     google_uid: Optional[str] = None

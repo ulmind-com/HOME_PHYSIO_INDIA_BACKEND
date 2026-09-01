@@ -16,7 +16,7 @@ from app.core.security import hash_password
 from app.dependencies.auth import ActorContext, require_permission
 from app.models.enums import ActivityAction
 from app.models.rbac import Permission, Role
-from app.models.user import User
+from app.models.user import User, TherapistDocument
 from app.repositories.base import BaseRepository
 from app.schemas.user import (
     PermissionResponse,
@@ -26,6 +26,7 @@ from app.schemas.user import (
     UserCreate,
     UserResponse,
     UserUpdate,
+    TherapistDocumentCreate,
 )
 from app.services.activity_service import activity_service
 from app.services.email_service import email_service
@@ -162,6 +163,74 @@ async def delete_user(
         ip_address=actor.ip_address, user_agent=actor.user_agent,
     )
     return success_response(message="User deleted")
+
+
+# ---- Documents --------------------------------------------------------
+
+@router.post("/me/documents", status_code=201, summary="Upload a document")
+async def add_document(
+    payload: TherapistDocumentCreate,
+    actor: ActorContext = Depends(require_permission("profile", "update")),
+) -> dict:
+    """Upload a certificate or document to the user's profile."""
+    user = await _users.get(actor.user_id)
+    if user is None:
+        raise NotFoundException("User not found")
+    
+    doc = TherapistDocument(
+        title=payload.title,
+        file=payload.file,
+    )
+    user.documents.append(doc)
+    await _users.update(user, {"documents": user.documents})
+    return success_response(data=doc.model_dump(mode="json"), message="Document added")
+
+
+@router.delete("/me/documents/{doc_id}", summary="Delete a document")
+async def delete_document(
+    doc_id: str,
+    actor: ActorContext = Depends(require_permission("profile", "update")),
+) -> dict:
+    """Delete a certificate or document from the user's profile."""
+    user = await _users.get(actor.user_id)
+    if user is None:
+        raise NotFoundException("User not found")
+    
+    initial_count = len(user.documents)
+    user.documents = [doc for doc in user.documents if doc.id != doc_id]
+    
+    if len(user.documents) == initial_count:
+        raise NotFoundException("Document not found")
+        
+    await _users.update(user, {"documents": user.documents})
+    return success_response(message="Document deleted")
+
+
+@router.patch("/{user_id}/documents/{doc_id}/verify", summary="Verify a document")
+async def verify_document(
+    user_id: str,
+    doc_id: str,
+    actor: ActorContext = Depends(require_permission("users", "update")),
+) -> dict:
+    """Verify or unverify a therapist's document (Admin only)."""
+    user = await _users.get(user_id)
+    if user is None:
+        raise NotFoundException("User not found")
+    
+    doc = next((d for d in user.documents if d.id == doc_id), None)
+    if doc is None:
+        raise NotFoundException("Document not found")
+        
+    from app.models.base import utcnow
+    
+    doc.is_verified = not doc.is_verified
+    doc.verified_at = utcnow() if doc.is_verified else None
+    
+    await _users.update(user, {"documents": user.documents})
+    return success_response(
+        data=doc.model_dump(mode="json"),
+        message=f"Document {'verified' if doc.is_verified else 'unverified'} successfully"
+    )
 
 
 # ---- Roles ------------------------------------------------------------

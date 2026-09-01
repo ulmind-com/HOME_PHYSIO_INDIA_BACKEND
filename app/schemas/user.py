@@ -7,9 +7,20 @@ from typing import List, Optional
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
-from app.models.base import ImageAsset
+from app.models.base import ImageAsset, FileAsset
 from app.schemas.common import IdTimestampSchema
 
+class TherapistDocumentCreate(BaseModel):
+    title: str = Field(..., max_length=100)
+    file: FileAsset
+
+class TherapistDocumentResponse(BaseModel):
+    id: str
+    title: str
+    file: FileAsset
+    is_verified: bool
+    uploaded_at: dt.datetime
+    verified_at: Optional[dt.datetime] = None
 
 class UserCreate(BaseModel):
     """Payload for creating an admin/staff user."""
@@ -48,6 +59,7 @@ class UserResponse(IdTimestampSchema):
     avatar: Optional[ImageAsset] = None
     specialization: Optional[str] = None
     experience_years: Optional[int] = None
+    documents: List[TherapistDocumentResponse] = Field(default_factory=list)
     role: str
     extra_permissions: List[str] = Field(default_factory=list)
     user_type: str
