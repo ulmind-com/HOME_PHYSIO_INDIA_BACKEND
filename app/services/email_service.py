@@ -139,6 +139,36 @@ class EmailService:
         """
         return await self.send(to, f"Application Received: {job_title}", body)
 
+    async def send_therapist_credentials_email(self, to: str, name: str, password: str, role: str = "Therapist") -> bool:
+        body = f"""
+        <div style="text-align: center; padding: 32px 20px;">
+            <div style="background-color: #f0fdfa; display: inline-block; padding: 16px; border-radius: 50%; margin-bottom: 24px;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#0f766e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+            </div>
+            <h1 style="color: #0f766e; font-size: 28px; margin-bottom: 16px; font-weight: 700;">Welcome to {settings.APP_NAME}!</h1>
+            <p style="font-size: 16px; color: #4b5563; margin-bottom: 32px; line-height: 1.6; max-width: 480px; margin-left: auto; margin-right: auto;">
+                Hi <b>{name}</b>,<br><br>
+                An administrator has successfully created your <b>{role}</b> account at {settings.APP_NAME}.
+                You can now log in to the portal using your email address and the temporary password provided below.
+            </p>
+            <div style="background-color: #f3f4f6; border-radius: 8px; padding: 24px; max-width: 320px; margin: 0 auto 32px auto; text-align: left;">
+                <p style="margin: 0 0 8px 0; font-size: 14px; color: #6b7280; font-weight: 600; text-transform: uppercase;">Login Credentials</p>
+                <p style="margin: 0 0 8px 0; font-size: 15px; color: #1f2937;"><strong>Email:</strong> {to}</p>
+                <p style="margin: 0; font-size: 15px; color: #1f2937;"><strong>Password:</strong> {password}</p>
+            </div>
+            <a href="{settings.FRONTEND_URL}/login" style="display: inline-block; background-color: #0f766e; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(15, 118, 110, 0.2);">
+                Log In to Your Dashboard
+            </a>
+            <p style="font-size: 14px; color: #6b7280; margin-top: 48px;">
+                For security reasons, we highly recommend that you log in with Google using the same email address, or update your password shortly after your first login.
+            </p>
+        </div>
+        """
+        return await self.send(to, f"Your {settings.APP_NAME} Account Credentials", body)
+
     async def send_application_accepted_email(self, to: str, name: str, job_title: str) -> bool:
         body = f"""
         <div style="text-align: center; padding: 32px 20px;">

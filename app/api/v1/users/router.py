@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, BackgroundTasks
+import string
+import secrets
 
 from app.api.helpers import item_response, paginated_response
 from app.core.exceptions import ConflictException, ForbiddenException, NotFoundException
@@ -25,6 +27,7 @@ from app.schemas.user import (
     UserUpdate,
 )
 from app.services.activity_service import activity_service
+from app.services.email_service import email_service
 from app.utils.slugify import unique_slug
 
 router = APIRouter(prefix="/users", tags=["Users & Roles"])
@@ -57,6 +60,7 @@ async def list_users(
 @router.post("", status_code=201, summary="Create user")
 async def create_user(
     payload: UserCreate,
+    bg_tasks: BackgroundTasks,
     actor: ActorContext = Depends(require_permission("users", "create")),
 ) -> dict:
     """Create a new admin/staff user."""
@@ -64,17 +68,38 @@ async def create_user(
     if await _users.exists({"email": email}):
         raise ConflictException("A user with this email already exists")
 
+    plain_password = payload.password
+    if not plain_password:
+        # Generate a secure 12-character random password
+        alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+        plain_password = "".join(secrets.choice(alphabet) for _ in range(12))
+
+    user_type = payload.user_type
+    if payload.role.lower() == "therapist":
+        user_type = "staff"
+
     user = User(
         name=payload.name,
         email=email,
-        hashed_password=hash_password(payload.password),
+        hashed_password=hash_password(plain_password),
         phone=payload.phone,
         role=payload.role,
         extra_permissions=payload.extra_permissions,
+        user_type=user_type,
         is_active=payload.is_active,
         is_superuser=payload.is_superuser,
     )
     await _users.create(user)
+
+    if payload.send_credentials_email:
+        bg_tasks.add_task(
+            email_service.send_therapist_credentials_email,
+            to=email,
+            name=user.name,
+            password=plain_password,
+            role=user.role,
+        )
+
     await activity_service.log(
         ActivityAction.CREATE, "users",
         user_id=actor.user_id, user_email=actor.email,

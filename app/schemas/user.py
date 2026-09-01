@@ -16,17 +16,20 @@ class UserCreate(BaseModel):
 
     name: str = Field(..., min_length=2, max_length=120)
     email: EmailStr
-    password: str = Field(..., min_length=8, max_length=128)
+    password: Optional[str] = Field(None, min_length=8, max_length=128)
     phone: Optional[str] = Field(None, max_length=20)
     role: str = "admin"
     extra_permissions: List[str] = Field(default_factory=list)
     user_type: str = "admin"
     is_active: bool = True
     is_superuser: bool = False
+    send_credentials_email: bool = False
 
     @field_validator("password")
     @classmethod
-    def validate_password(cls, v: str) -> str:
+    def validate_password(cls, v: Optional[str]) -> Optional[str]:
+        if not v:
+            return v
         import re
         if not re.search(r"[A-Z]", v):
             raise ValueError("Password must contain at least one uppercase letter")
