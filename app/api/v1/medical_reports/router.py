@@ -182,15 +182,7 @@ async def update_report(
     if not report:
         raise NotFoundException("Report not found")
 
-    if user.user_type == "patient" and report.patient_id != str(user.id):
-        raise ForbiddenException("You don't have access to update this report")
-        
-    if user.user_type != "patient":
-        from app.dependencies.auth import _resolve_permissions
-        from app.core.permissions import ALL
-        perms = await _resolve_permissions(user)
-        if ALL not in perms and "medical_reports:update" not in perms and "medical_reports:*" not in perms:
-             raise ForbiddenException("Missing required permission: medical_reports:update")
+    await _authorize_report_access(report, user, "update")
 
     data = {}
     if title is not None:
@@ -232,6 +224,13 @@ async def review_report(
     if not report:
         raise NotFoundException("Report not found")
 
+    if actor.user.role == "therapist":
+        perms = await _resolve_permissions(actor.user)
+        if ALL not in perms:
+            assigned_ids = await _therapist_assigned_patient_ids(actor.user)
+            if report.patient_id not in assigned_ids:
+                raise ForbiddenException("You are not assigned to this patient")
+
     data = payload.model_dump(exclude_unset=True)
     data["reviewed_by_id"] = actor.user_id
     
@@ -249,15 +248,7 @@ async def delete_report(
     if not report:
         raise NotFoundException("Report not found")
 
-    if user.user_type == "patient" and report.patient_id != str(user.id):
-        raise ForbiddenException("You don't have access to delete this report")
-        
-    if user.user_type != "patient":
-        from app.dependencies.auth import _resolve_permissions
-        from app.core.permissions import ALL
-        perms = await _resolve_permissions(user)
-        if ALL not in perms and "medical_reports:delete" not in perms and "medical_reports:*" not in perms:
-             raise ForbiddenException("Missing required permission: medical_reports:delete")
+    await _authorize_report_access(report, user, "delete")
 
     # Delete from Cloudinary
     if report.file and hasattr(report.file, "public_id") and report.file.public_id:

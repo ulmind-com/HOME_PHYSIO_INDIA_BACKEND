@@ -57,6 +57,9 @@ async def list_bookings(
     date_from: Optional[str] = Query(None, description="ISO date lower bound"),
     date_to: Optional[str] = Query(None, description="ISO date upper bound"),
     source: Optional[str] = Query(None, description="Filter by source"),
+    service_keywords: Optional[str] = Query(
+        None, description="Comma-separated keywords matched against service_name (e.g. the Physio Requests view)"
+    ),
     _: ActorContext = Depends(require_permission("bookings", "view")),
 ) -> dict:
     items, total = await booking_service.paginate(
@@ -64,6 +67,7 @@ async def list_bookings(
         sort_by=params.sort_by, sort_order=params.sort_direction,
         status=status, service_id=service_id, date_from=date_from, date_to=date_to,
         source=source,
+        service_keywords=[k.strip() for k in service_keywords.split(",") if k.strip()] if service_keywords else None,
     )
     return paginated_response(BookingResponse, items, total, params)
 

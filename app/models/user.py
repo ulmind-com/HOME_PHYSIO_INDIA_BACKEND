@@ -35,10 +35,18 @@ class User(TimestampedDocument):
     phone: Optional[str] = None
     address: Optional[str] = None
     avatar: Optional[ImageAsset] = None
-    
+
+    # Patient-specific onboarding fields
+    age: Optional[int] = None
+    pincode: Optional[str] = None
+    medical_condition: Optional[str] = None
+
     # Therapist specific fields
     specialization: Optional[str] = None
     experience_years: Optional[int] = None
+    qualification: Optional[str] = None  # TherapistQualification: MPT/BPT/PT/DPT
+    therapist_tier: Optional[str] = None  # TherapistTier: verified/associate/premium
+    verification_status: str = "approved"  # VerificationStatus: pending/approved/rejected
     documents: List[TherapistDocument] = Field(default_factory=list)
 
     # Google OAuth linkage

@@ -22,15 +22,21 @@ _users.search_fields = ("name", "specialization")
 async def list_therapists(
     params: PaginationParams = Depends(pagination_params),
     specialization: Optional[str] = Query(None),
+    user_type: Optional[str] = Query(
+        None, description="physiotherapist | yoga_therapist | massage_therapist"
+    ),
     _: User = Depends(get_current_active_user),  # Must be logged in
 ) -> dict:
-    """Paginated list of active therapists for the directory."""
+    """Paginated list of admin-approved, active therapists for the directory."""
     query = {
         "role": "therapist",
         "is_active": True,
+        "verification_status": "approved",
     }
     if specialization:
         query["specialization"] = specialization
+    if user_type:
+        query["user_type"] = user_type
 
     items, total = await _users.paginate(
         page=params.page,

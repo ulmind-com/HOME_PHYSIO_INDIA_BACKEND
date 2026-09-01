@@ -36,6 +36,20 @@ class RegisterRequest(BaseModel):
     phone: str = Field(..., min_length=10, description="Mandatory phone number")
 
 
+THERAPIST_USER_TYPES = {"physiotherapist", "yoga_therapist", "massage_therapist"}
+
+
+class RegisterTherapistRequest(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    phone: str = Field(..., min_length=10, description="Mandatory phone number")
+    user_type: str = Field(..., description="physiotherapist | yoga_therapist | massage_therapist")
+    qualification: Optional[str] = Field(None, description="MPT | BPT | PT | DPT")
+    specialization: Optional[str] = Field(None, max_length=120)
+    experience_years: Optional[int] = Field(None, ge=0, le=60)
+
+
 class VerifyEmailRequest(BaseModel):
     email: EmailStr
     otp: str = Field(..., min_length=6, max_length=6)
@@ -92,7 +106,70 @@ async def register_account(request: Request, response: Response, payload: Regist
         await _users.create(user)
         
     await email_service.send_verification_otp(user.email, otp)
-    
+
+    return success_response(
+        message="Registration successful. Please verify your email with the OTP sent.",
+    )
+
+
+@router.post("/register-therapist", summary="Register a new therapist account")
+@limiter.limit(settings.RATE_LIMIT_AUTH)
+async def register_therapist(request: Request, response: Response, payload: RegisterTherapistRequest) -> dict:
+    """Self-registration for Physiotherapist / Yoga Therapist / Massage Therapist.
+
+    Sits pending admin review (``verification_status="pending"``) until an
+    admin approves it via ``PATCH /users/{id}/verification`` — the account
+    won't appear in the public therapist directory or be assignable to
+    bookings until then (see app/api/v1/therapists/router.py).
+    """
+    if payload.user_type not in THERAPIST_USER_TYPES:
+        raise BadRequestException(
+            f"user_type must be one of: {sorted(THERAPIST_USER_TYPES)}"
+        )
+
+    email_lower = payload.email.lower().strip()
+
+    existing = await _users.find_one({"email": email_lower})
+    if existing:
+        if existing.is_email_verified:
+            raise BadRequestException("User with this email already exists.")
+        user = existing
+        user.name = payload.name.strip()
+        user.hashed_password = hash_password(payload.password)
+        user.phone = payload.phone.strip()
+        user.role = "therapist"
+        user.user_type = payload.user_type
+        user.qualification = payload.qualification
+        user.specialization = payload.specialization
+        user.experience_years = payload.experience_years
+        user.verification_status = "pending"
+    else:
+        user = User(
+            name=payload.name.strip(),
+            email=email_lower,
+            hashed_password=hash_password(payload.password),
+            phone=payload.phone.strip(),
+            is_email_verified=False,
+            role="therapist",
+            user_type=payload.user_type,
+            qualification=payload.qualification,
+            specialization=payload.specialization,
+            experience_years=payload.experience_years,
+            verification_status="pending",
+            is_active=True,
+        )
+
+    otp = _generate_otp()
+    user.email_verification_otp = otp
+    user.otp_expires_at = dt.datetime.now(dt.timezone.utc) + dt.timedelta(minutes=10)
+
+    if existing:
+        await user.save()
+    else:
+        await _users.create(user)
+
+    await email_service.send_verification_otp(user.email, otp)
+
     return success_response(
         message="Registration successful. Please verify your email with the OTP sent.",
     )
@@ -135,8 +212,11 @@ async def verify_email(request: Request, response: Response, bg_tasks: Backgroun
     ua = request.headers.get("User-Agent")
     access_token, refresh_token = await auth_service.issue_tokens(user, ip_address=ip, user_agent=ua)
     
-    # Send welcome email in background
-    bg_tasks.add_task(email_service.send_welcome_email, user.email, user.name)
+    # Send a role-appropriate welcome email in background
+    if user.role == "therapist":
+        bg_tasks.add_task(email_service.send_therapist_registration_received, user.email, user.name)
+    else:
+        bg_tasks.add_task(email_service.send_welcome_email, user.email, user.name)
 
     return success_response(
         data={

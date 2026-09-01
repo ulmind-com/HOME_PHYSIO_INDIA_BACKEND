@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import csv
 import io
+import re
 from typing import Any, Dict, List, Optional, Tuple
 
 from app.core.exceptions import BadRequestException, NotFoundException
 from app.dependencies.auth import ActorContext
+from app.models.base import utcnow
 from app.models.booking import Booking
 from app.models.enums import ActivityAction, BookingStatus, NotificationType
 from app.repositories.base import BaseRepository
@@ -61,7 +63,14 @@ class BookingService:
         actor: ActorContext,
         reason: Optional[str] = None,
     ) -> Booking:
-        """Transition a booking to a new status with validation."""
+        """Transition a booking to a new status with validation.
+
+        The terminal-state guard is enforced as part of the update filter
+        itself (a compare-and-swap on ``status``), not a separate
+        read-then-write, so two concurrent transitions on the same booking
+        (e.g. approve + reject fired at once) can't both silently "succeed"
+        and leave the audit trail out of sync with the stored status.
+        """
         booking = await self.get_or_404(booking_id)
 
         terminal = {BookingStatus.COMPLETED, BookingStatus.CANCELLED, BookingStatus.REJECTED}
@@ -70,14 +79,27 @@ class BookingService:
                 f"Booking is already {booking.status} and cannot be changed"
             )
 
-        booking.status = status
+        admin_notes = booking.admin_notes
         if reason:
             note = f"[{status}] {reason}"
-            booking.admin_notes = (
-                f"{booking.admin_notes}\n{note}" if booking.admin_notes else note
+            admin_notes = f"{admin_notes}\n{note}" if admin_notes else note
+
+        match_filter: Dict[str, Any] = {"_id": booking.id}
+        if booking.status not in terminal:
+            # Re-check at write time: block a concurrent request that already
+            # moved this booking into a terminal state after we read it above.
+            match_filter["status"] = {"$nin": [s.value for s in terminal]}
+
+        result = await Booking.get_motor_collection().update_one(
+            match_filter,
+            {"$set": {"status": status.value, "admin_notes": admin_notes, "updated_at": utcnow()}},
+        )
+        if result.matched_count == 0:
+            raise BadRequestException(
+                "This booking was just updated by someone else — please refresh and try again."
             )
-        booking.touch()
-        await booking.save()
+
+        booking = await self.get_or_404(booking_id)
 
         if booking.status != BookingStatus.PENDING:
             await notification_service.mark_read_by_reference(str(booking.id))
@@ -96,9 +118,11 @@ class BookingService:
         self, booking_id: str, staff_id: str, staff_name: str, actor: ActorContext
     ) -> Booking:
         booking = await self.get_or_404(booking_id)
-        if booking.status in (BookingStatus.CANCELLED, BookingStatus.REJECTED):
+        assignable = {BookingStatus.APPROVED, BookingStatus.IN_PROGRESS}
+        if booking.status not in assignable:
             raise BadRequestException(
-                f"Cannot assign staff to a booking with status '{booking.status}'."
+                f"Cannot assign staff to a booking with status '{booking.status}'. "
+                "The booking must be approved first."
             )
         booking.assigned_staff_id = staff_id
         booking.assigned_staff_name = staff_name
@@ -126,6 +150,7 @@ class BookingService:
         date_from: Optional[str] = None,
         date_to: Optional[str] = None,
         source: Optional[str] = None,
+        service_keywords: Optional[List[str]] = None,
     ) -> Tuple[List[Booking], int]:
         filters: Dict[str, Any] = {}
         if status:
@@ -134,6 +159,9 @@ class BookingService:
             filters["service_id"] = service_id
         if source:
             filters["source"] = source
+        if service_keywords:
+            pattern = "|".join(re.escape(k) for k in service_keywords)
+            filters["service_name"] = {"$regex": pattern, "$options": "i"}
         date_filter: Dict[str, Any] = {}
         if date_from:
             date_filter["$gte"] = date_from

@@ -8,13 +8,13 @@ import string
 import secrets
 
 from app.api.helpers import item_response, paginated_response
-from app.core.exceptions import ConflictException, ForbiddenException, NotFoundException
+from app.core.exceptions import BadRequestException, ConflictException, ForbiddenException, NotFoundException
 from app.core.pagination import PaginationParams, pagination_params
 from app.core.permissions import ALL, all_permission_codes
 from app.core.responses import success_response
 from app.core.security import hash_password
 from app.dependencies.auth import ActorContext, require_permission
-from app.models.enums import ActivityAction
+from app.models.enums import ActivityAction, VerificationStatus
 from app.models.rbac import Permission, Role
 from app.models.user import User, TherapistDocument
 from app.repositories.base import BaseRepository
@@ -23,6 +23,7 @@ from app.schemas.user import (
     RoleCreate,
     RoleResponse,
     RoleUpdate,
+    TherapistVerificationUpdate,
     UserCreate,
     UserResponse,
     UserUpdate,
@@ -68,6 +69,7 @@ async def _assert_no_privilege_escalation(actor: ActorContext, data: dict) -> No
 async def list_users(
     role: Optional[str] = Query(None, description="Filter users by role"),
     user_type: Optional[str] = Query(None, description="Filter users by user type"),
+    verification_status: Optional[str] = Query(None, description="Filter therapists by verification status"),
     params: PaginationParams = Depends(pagination_params),
     _: ActorContext = Depends(require_permission("users", "view")),
 ) -> dict:
@@ -77,6 +79,8 @@ async def list_users(
         filters["role"] = role
     if user_type:
         filters["user_type"] = user_type
+    if verification_status:
+        filters["verification_status"] = verification_status
     items, total = await _users.paginate(
         page=params.page,
         page_size=params.page_size,
@@ -107,10 +111,6 @@ async def create_user(
         alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
         plain_password = "".join(secrets.choice(alphabet) for _ in range(12))
 
-    user_type = payload.user_type
-    if payload.role.lower() == "therapist":
-        user_type = "staff"
-
     user = User(
         name=payload.name,
         email=email,
@@ -118,9 +118,13 @@ async def create_user(
         phone=payload.phone,
         role=payload.role,
         extra_permissions=payload.extra_permissions,
-        user_type=user_type,
+        user_type=payload.user_type,
         is_active=payload.is_active,
         is_superuser=payload.is_superuser,
+        specialization=payload.specialization,
+        experience_years=payload.experience_years,
+        qualification=payload.qualification,
+        therapist_tier=payload.therapist_tier,
     )
     await _users.create(user)
 
@@ -172,6 +176,56 @@ async def update_user(
         ip_address=actor.ip_address, user_agent=actor.user_agent,
     )
     return item_response(UserResponse, user, "User updated")
+
+
+@router.patch("/{user_id}/verification", summary="Approve or reject a therapist registration")
+async def update_verification_status(
+    user_id: str,
+    payload: TherapistVerificationUpdate,
+    bg_tasks: BackgroundTasks,
+    actor: ActorContext = Depends(require_permission("users", "update")),
+) -> dict:
+    """Admin approves/rejects a therapist's self-registration or onboarding.
+
+    Kept separate from the generic ``update_user`` endpoint so approval is an
+    explicit, auditable action distinct from editing profile fields, and so
+    the public therapist directory / assignment pickers can rely on a single
+    well-defined status transition instead of a free-form field edit.
+    """
+    if payload.verification_status not in {s.value for s in VerificationStatus}:
+        raise BadRequestException(
+            f"Invalid verification_status. Must be one of: {[s.value for s in VerificationStatus]}"
+        )
+
+    user = await _users.get(user_id)
+    if user is None:
+        raise NotFoundException("User not found")
+    if user.role != "therapist":
+        raise BadRequestException("Verification status only applies to therapist accounts")
+
+    data: dict = {"verification_status": payload.verification_status}
+    if payload.verification_status == VerificationStatus.APPROVED and payload.therapist_tier:
+        data["therapist_tier"] = payload.therapist_tier
+
+    await _users.update(user, data)
+
+    await activity_service.log(
+        ActivityAction.APPROVE if payload.verification_status == VerificationStatus.APPROVED else ActivityAction.REJECT,
+        "users",
+        user_id=actor.user_id, user_email=actor.email,
+        entity_id=user_id, description=f"Set verification status of {user.email} to {payload.verification_status}",
+        ip_address=actor.ip_address, user_agent=actor.user_agent,
+    )
+
+    if payload.verification_status == VerificationStatus.APPROVED:
+        bg_tasks.add_task(email_service.send_therapist_approved_email, to=user.email, name=user.name)
+    elif payload.verification_status == VerificationStatus.REJECTED:
+        bg_tasks.add_task(
+            email_service.send_therapist_rejected_email,
+            to=user.email, name=user.name, reason=payload.rejection_reason,
+        )
+
+    return item_response(UserResponse, user, "Verification status updated")
 
 
 @router.delete("/{user_id}", summary="Delete user")

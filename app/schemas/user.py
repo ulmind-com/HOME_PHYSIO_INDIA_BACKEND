@@ -35,6 +35,10 @@ class UserCreate(BaseModel):
     is_active: bool = True
     is_superuser: bool = False
     send_credentials_email: bool = False
+    specialization: Optional[str] = Field(None, max_length=120)
+    experience_years: Optional[int] = Field(None, ge=0, le=60)
+    qualification: Optional[str] = None
+    therapist_tier: Optional[str] = None
 
 
 class UserUpdate(BaseModel):
@@ -47,6 +51,18 @@ class UserUpdate(BaseModel):
     user_type: Optional[str] = None
     is_active: Optional[bool] = None
     is_superuser: Optional[bool] = None
+    specialization: Optional[str] = Field(None, max_length=120)
+    experience_years: Optional[int] = Field(None, ge=0, le=60)
+    qualification: Optional[str] = None
+    therapist_tier: Optional[str] = None
+
+
+class TherapistVerificationUpdate(BaseModel):
+    """Approve or reject a therapist's registration (admin only)."""
+
+    verification_status: str
+    therapist_tier: Optional[str] = None
+    rejection_reason: Optional[str] = Field(None, max_length=500)
 
 
 class UserResponse(IdTimestampSchema):
@@ -57,8 +73,14 @@ class UserResponse(IdTimestampSchema):
     phone: Optional[str] = None
     address: Optional[str] = None
     avatar: Optional[ImageAsset] = None
+    age: Optional[int] = None
+    pincode: Optional[str] = None
+    medical_condition: Optional[str] = None
     specialization: Optional[str] = None
     experience_years: Optional[int] = None
+    qualification: Optional[str] = None
+    therapist_tier: Optional[str] = None
+    verification_status: str = "approved"
     documents: List[TherapistDocumentResponse] = Field(default_factory=list)
     role: str
     extra_permissions: List[str] = Field(default_factory=list)
@@ -74,6 +96,9 @@ class ProfileUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=2, max_length=120)
     phone: Optional[str] = Field(None, max_length=20)
     address: Optional[str] = Field(None, max_length=500)
+    age: Optional[int] = Field(None, ge=0, le=120)
+    pincode: Optional[str] = Field(None, min_length=4, max_length=10)
+    medical_condition: Optional[str] = Field(None, max_length=2000)
 
 
 # ---- Roles & permissions ----

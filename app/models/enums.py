@@ -104,6 +104,31 @@ class NotificationType(StrEnum):
     SYSTEM = "system"
 
 
+class TherapistQualification(StrEnum):
+    """Recognised physiotherapy qualification for a therapist account."""
+
+    MPT = "MPT"
+    BPT = "BPT"
+    PT = "PT"
+    DPT = "DPT"
+
+
+class TherapistTier(StrEnum):
+    """Business tier assigned to a therapist by admin during approval."""
+
+    VERIFIED = "verified"
+    ASSOCIATE = "associate"
+    PREMIUM = "premium"
+
+
+class VerificationStatus(StrEnum):
+    """Admin approval status for a therapist account."""
+
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
 class ActivityAction(StrEnum):
     """Admin action recorded in the activity log."""
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import List, Optional, Tuple
 
-from app.core.exceptions import NotFoundException
+from app.core.exceptions import ForbiddenException, NotFoundException
 from app.models.enums import NotificationType
 from app.models.notification import Notification
 from app.repositories.base import BaseRepository
@@ -70,6 +70,8 @@ class NotificationService:
         notification = await self.repo.get(notification_id)
         if notification is None:
             raise NotFoundException("Notification not found")
+        if notification.user_id is not None and notification.user_id != user_id:
+            raise ForbiddenException("You don't have access to this notification")
         notification.is_read = True
         notification.read_at = dt.datetime.now(dt.timezone.utc)
         notification.touch()
