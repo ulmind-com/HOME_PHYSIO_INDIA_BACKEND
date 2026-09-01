@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, BackgroundTasks
+from typing import Optional
+from fastapi import APIRouter, Depends, BackgroundTasks, Query
 import string
 import secrets
 
@@ -43,16 +44,19 @@ _permissions: BaseRepository[Permission] = BaseRepository(Permission)
 
 @router.get("", summary="List users")
 async def list_users(
+    role: Optional[str] = Query(None, description="Filter users by role"),
     params: PaginationParams = Depends(pagination_params),
     _: ActorContext = Depends(require_permission("users", "view")),
 ) -> dict:
     """Paginated list of admin/staff users."""
+    filters = {"role": role} if role else None
     items, total = await _users.paginate(
         page=params.page,
         page_size=params.page_size,
         search=params.search,
         sort_by=params.sort_by,
         sort_order=params.sort_direction,
+        filters=filters,
     )
     return paginated_response(UserResponse, items, total, params)
 
