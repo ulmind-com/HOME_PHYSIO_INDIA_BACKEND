@@ -96,6 +96,10 @@ class BookingService:
         self, booking_id: str, staff_id: str, staff_name: str, actor: ActorContext
     ) -> Booking:
         booking = await self.get_or_404(booking_id)
+        if booking.status in (BookingStatus.CANCELLED, BookingStatus.REJECTED):
+            raise BadRequestException(
+                f"Cannot assign staff to a booking with status '{booking.status}'."
+            )
         booking.assigned_staff_id = staff_id
         booking.assigned_staff_name = staff_name
         booking.touch()

@@ -10,7 +10,7 @@ import secrets
 from app.api.helpers import item_response, paginated_response
 from app.core.exceptions import ConflictException, ForbiddenException, NotFoundException
 from app.core.pagination import PaginationParams, pagination_params
-from app.core.permissions import all_permission_codes
+from app.core.permissions import ALL, all_permission_codes
 from app.core.responses import success_response
 from app.core.security import hash_password
 from app.dependencies.auth import ActorContext, require_permission
@@ -38,6 +38,27 @@ _users: BaseRepository[User] = BaseRepository(User)
 _users.search_fields = ("name", "email")
 _roles: BaseRepository[Role] = BaseRepository(Role)
 _permissions: BaseRepository[Permission] = BaseRepository(Permission)
+
+
+async def _assert_no_privilege_escalation(actor: ActorContext, data: dict) -> None:
+    """Block a non-superuser from granting superuser-equivalent access.
+
+    ``users:update``/``users:create`` is deliberately grantable to limited
+    custom roles (e.g. a staff manager); without this check such a role could
+    self-escalate by setting ``is_superuser``, adding ``extra_permissions``,
+    or switching ``role`` to one that carries the ``*`` wildcard.
+    """
+    if actor.user.is_superuser:
+        return
+    if data.get("is_superuser"):
+        raise ForbiddenException("Only a superuser can grant superuser privileges")
+    if data.get("extra_permissions"):
+        raise ForbiddenException("Only a superuser can grant additional permissions")
+    role_slug = data.get("role")
+    if role_slug:
+        role = await _roles.find_one({"slug": role_slug})
+        if role and ALL in role.permissions:
+            raise ForbiddenException("Only a superuser can assign a role with full access")
 
 
 # ---- Users ------------------------------------------------------------
@@ -69,6 +90,8 @@ async def create_user(
     actor: ActorContext = Depends(require_permission("users", "create")),
 ) -> dict:
     """Create a new admin/staff user."""
+    await _assert_no_privilege_escalation(actor, payload.model_dump())
+
     email = payload.email.lower().strip()
     if await _users.exists({"email": email}):
         raise ConflictException("A user with this email already exists")
@@ -135,6 +158,7 @@ async def update_user(
     if user is None:
         raise NotFoundException("User not found")
     data = payload.model_dump(exclude_unset=True)
+    await _assert_no_privilege_escalation(actor, data)
     await _users.update(user, data)
     await activity_service.log(
         ActivityAction.UPDATE, "users",
@@ -300,6 +324,11 @@ async def delete_role(
         raise NotFoundException("Role not found")
     if role.is_system:
         raise ForbiddenException("System roles cannot be deleted")
+    assigned_count = await User.find({"role": role.slug}).count()
+    if assigned_count > 0:
+        raise ForbiddenException(
+            f"Cannot delete role '{role.name}' because {assigned_count} user(s) are assigned to it."
+        )
     await _roles.delete(role)
     return success_response(message="Role deleted")
 

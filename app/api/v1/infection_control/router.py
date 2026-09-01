@@ -109,7 +109,9 @@ async def list_enquiries(
     if status:
         filters["status"] = status
     params = PaginationParams(page=page, page_size=page_size)
-    items, total = await _enquiry.paginate(filters=filters, params=params)
+    items, total = await _enquiry.paginate(
+        page=params.page, page_size=params.page_size, filters=filters
+    )
     return paginated_response(
         InfectionControlEnquiryResponse, items, total, params, "Enquiries fetched"
     )

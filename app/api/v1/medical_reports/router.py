@@ -10,8 +10,9 @@ from pydantic import ValidationError
 from app.api.helpers import item_response, paginated_response
 from app.core.exceptions import BadRequestException, ForbiddenException, NotFoundException
 from app.core.pagination import PaginationParams, pagination_params
+from app.core.permissions import ALL
 from app.core.responses import success_response
-from app.dependencies.auth import ActorContext, get_current_active_user, require_permission
+from app.dependencies.auth import ActorContext, _resolve_permissions, get_current_active_user, require_permission
 from app.models.booking import Booking
 from app.models.medical_report import MedicalReport, ReportStatus, ReportType
 from app.models.user import User
@@ -32,6 +33,41 @@ _reports: BaseRepository[MedicalReport] = BaseRepository(MedicalReport)
 _reports.search_fields = ("title",)
 
 
+async def _therapist_assigned_patient_ids(user: User) -> set[str]:
+    """Patient ids whose care is currently assigned to this therapist."""
+    assigned_bookings = await Booking.find({"assigned_staff_id": str(user.id)}).to_list()
+    patient_ids = {b.patient_id for b in assigned_bookings if b.patient_id}
+    for b in assigned_bookings:
+        if b.contact_email:
+            patient_user = await User.find_one({"email": b.contact_email})
+            if patient_user:
+                patient_ids.add(str(patient_user.id))
+    return patient_ids
+
+
+async def _authorize_report_access(report: MedicalReport, user: User, action: str) -> None:
+    """Enforce patient/therapist/staff scoping for a single-report operation.
+
+    Mirrors the scoping ``list_reports`` already applies, so a therapist can
+    never view/update/review/delete a report for a patient they aren't
+    assigned to just by knowing/guessing the report id.
+    """
+    if user.user_type == "patient":
+        if report.patient_id != str(user.id):
+            raise ForbiddenException(f"You don't have access to {action} this report")
+        return
+
+    perms = await _resolve_permissions(user)
+    required = f"medical_reports:{action}"
+    if ALL not in perms and required not in perms and "medical_reports:*" not in perms:
+        raise ForbiddenException(f"Missing required permission: {required}")
+
+    if user.role == "therapist" and ALL not in perms:
+        assigned_ids = await _therapist_assigned_patient_ids(user)
+        if report.patient_id not in assigned_ids:
+            raise ForbiddenException("You are not assigned to this patient")
+
+
 @router.get("", summary="List medical reports")
 async def list_reports(
     params: PaginationParams = Depends(pagination_params),
@@ -45,33 +81,20 @@ async def list_reports(
         query["patient_id"] = str(user.id)
     elif user.role == "therapist":
         # Therapists can only see reports of patients assigned to them
-        assigned_bookings = await Booking.find(
-            {"assigned_staff_id": str(user.id)}
-        ).to_list()
-        assigned_patient_ids = list({b.patient_id for b in assigned_bookings if b.patient_id})
-        # Also match by email/phone
-        for b in assigned_bookings:
-            if b.contact_email:
-                # Find users by email to get their IDs
-                from app.models.user import User as UserModel
-                patient_user = await UserModel.find_one({"email": b.contact_email})
-                if patient_user:
-                    assigned_patient_ids.append(str(patient_user.id))
-        
+        assigned_patient_ids = await _therapist_assigned_patient_ids(user)
+
         if patient_id and patient_id in assigned_patient_ids:
             query["patient_id"] = patient_id
         elif not patient_id:
-            query["patient_id"] = {"$in": assigned_patient_ids} if assigned_patient_ids else "__none__"
+            query["patient_id"] = {"$in": list(assigned_patient_ids)} if assigned_patient_ids else "__none__"
         else:
             raise ForbiddenException("You are not assigned to this patient")
     else:
         # Require permission if not a patient
-        from app.dependencies.auth import _resolve_permissions
-        from app.core.permissions import ALL
         perms = await _resolve_permissions(user)
         if ALL not in perms and "medical_reports:view" not in perms and "medical_reports:*" not in perms:
              raise ForbiddenException("Missing required permission: medical_reports:view")
-             
+
         if patient_id:
             query["patient_id"] = patient_id
 
@@ -100,12 +123,14 @@ async def create_report(
         patient_id = str(user.id)
     elif not patient_id:
         raise BadRequestException("patient_id is required for non-patient uploads")
-    elif user.user_type != "patient":
-        from app.dependencies.auth import _resolve_permissions
-        from app.core.permissions import ALL
+    else:
         perms = await _resolve_permissions(user)
         if ALL not in perms and "medical_reports:create" not in perms and "medical_reports:*" not in perms:
              raise ForbiddenException("Missing required permission: medical_reports:create")
+        if user.role == "therapist" and ALL not in perms:
+            assigned_ids = await _therapist_assigned_patient_ids(user)
+            if patient_id not in assigned_ids:
+                raise ForbiddenException("You are not assigned to this patient")
 
     # Validate file type and size
     is_image = file.content_type and file.content_type.startswith("image/")
@@ -138,16 +163,8 @@ async def get_report(
     report = await _reports.get(report_id)
     if not report:
         raise NotFoundException("Report not found")
-        
-    if user.user_type == "patient" and report.patient_id != str(user.id):
-        raise ForbiddenException("You don't have access to this report")
-        
-    if user.user_type != "patient":
-        from app.dependencies.auth import _resolve_permissions
-        from app.core.permissions import ALL
-        perms = await _resolve_permissions(user)
-        if ALL not in perms and "medical_reports:view" not in perms and "medical_reports:*" not in perms:
-             raise ForbiddenException("Missing required permission: medical_reports:view")
+
+    await _authorize_report_access(report, user, "view")
 
     return item_response(MedicalReportResponse, report)
 

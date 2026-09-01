@@ -111,7 +111,8 @@ async def verify_email(request: Request, response: Response, bg_tasks: Backgroun
     if user.is_email_verified:
         raise BadRequestException("Email is already verified.")
         
-    if user.email_verification_otp != payload.otp:
+    import hmac
+    if not user.email_verification_otp or not hmac.compare_digest(user.email_verification_otp, payload.otp):
         raise BadRequestException("Invalid OTP.")
         
     if not user.otp_expires_at:
