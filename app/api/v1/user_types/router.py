@@ -55,20 +55,30 @@ async def create_user_type(
     return item_response(UserTypeResponse, ut, "User type created")
 
 
-@router.put("/{slug}", summary="Update user type")
+from beanie import PydanticObjectId
+
+async def _find_user_type(identifier: str) -> UserType | None:
+    if PydanticObjectId.is_valid(identifier):
+        ut = await UserType.get(identifier)
+        if ut is not None:
+            return ut
+    return await UserType.find_one({"slug": identifier})
+
+
+@router.put("/{type_id_or_slug}", summary="Update user type")
 async def update_user_type(
-    slug: str,
+    type_id_or_slug: str,
     payload: UserTypeUpdate,
     _: ActorContext = Depends(require_permission("roles", "update")),
 ) -> dict:
     """Update an existing user type (Admin only). Cannot rename core types."""
-    ut = await UserType.find_one({"slug": slug})
+    ut = await _find_user_type(type_id_or_slug)
     if ut is None:
         raise NotFoundException("User type not found")
 
     if payload.name is not None:
         if ut.is_core and ut.name != payload.name:
-             raise BadRequestException("Cannot change the name of a core user type")
+            raise BadRequestException("Cannot change the name of a core user type")
         ut.name = payload.name
     
     if payload.description is not None:
@@ -78,22 +88,21 @@ async def update_user_type(
     return item_response(UserTypeResponse, ut, "User type updated")
 
 
-@router.delete("/{slug}", summary="Delete user type")
+@router.delete("/{type_id_or_slug}", summary="Delete user type")
 async def delete_user_type(
-    slug: str,
+    type_id_or_slug: str,
     _: ActorContext = Depends(require_permission("roles", "delete")),
 ) -> dict:
     """Delete a user type. Core types cannot be deleted."""
-    ut = await UserType.find_one({"slug": slug})
+    ut = await _find_user_type(type_id_or_slug)
     if ut is None:
         raise NotFoundException("User type not found")
 
     if ut.is_core:
         raise BadRequestException("Core user types cannot be deleted")
 
-    # In a real system, you might check if users exist with this user_type before deleting
     from app.models.user import User
-    users_with_type = await User.find({"user_type": slug}).count()
+    users_with_type = await User.find({"user_type": ut.slug}).count()
     if users_with_type > 0:
         raise BadRequestException(f"Cannot delete user type. {users_with_type} users are assigned this type.")
 

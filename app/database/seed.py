@@ -81,7 +81,10 @@ async def seed_user_types() -> None:
     """Ensure core user types exist."""
     core_types = [
         {"name": "Admin", "slug": "admin", "description": "System Administrator"},
-        {"name": "Patient", "slug": "patient", "description": "Patient Account"}
+        {"name": "Patient", "slug": "patient", "description": "Patient Account"},
+        {"name": "Physiotherapist", "slug": "physiotherapist", "description": "Licensed Physiotherapy Specialist"},
+        {"name": "Yoga Therapist", "slug": "yoga_therapist", "description": "Certified Yoga & Wellness Practitioner"},
+        {"name": "Massage Therapist", "slug": "massage_therapist", "description": "Therapeutic Massage Practitioner"},
     ]
     for ct in core_types:
         if await UserType.find_one({"slug": ct["slug"]}) is None:

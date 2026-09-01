@@ -67,18 +67,23 @@ async def _assert_no_privilege_escalation(actor: ActorContext, data: dict) -> No
 @router.get("", summary="List users")
 async def list_users(
     role: Optional[str] = Query(None, description="Filter users by role"),
+    user_type: Optional[str] = Query(None, description="Filter users by user type"),
     params: PaginationParams = Depends(pagination_params),
     _: ActorContext = Depends(require_permission("users", "view")),
 ) -> dict:
     """Paginated list of admin/staff users."""
-    filters = {"role": role} if role else None
+    filters = {}
+    if role:
+        filters["role"] = role
+    if user_type:
+        filters["user_type"] = user_type
     items, total = await _users.paginate(
         page=params.page,
         page_size=params.page_size,
         search=params.search,
         sort_by=params.sort_by,
         sort_order=params.sort_direction,
-        filters=filters,
+        filters=filters or None,
     )
     return paginated_response(UserResponse, items, total, params)
 
