@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from typing import Optional
-from fastapi import APIRouter, Depends, BackgroundTasks, Query
+from fastapi import APIRouter, Depends, BackgroundTasks, Query, File, Form, UploadFile
 import string
 import secrets
 
@@ -169,7 +169,8 @@ async def delete_user(
 
 @router.post("/me/documents", status_code=201, summary="Upload a document")
 async def add_document(
-    payload: TherapistDocumentCreate,
+    file: UploadFile = File(...),
+    title: str = Form(...),
     actor: ActorContext = Depends(require_permission("profile", "update")),
 ) -> dict:
     """Upload a certificate or document to the user's profile."""
@@ -177,9 +178,18 @@ async def add_document(
     if user is None:
         raise NotFoundException("User not found")
     
+    from app.utils.files import read_validated_upload, DOC_TYPES, MAX_FILE_BYTES
+    from app.services.cloudinary_service import cloudinary_service
+    
+    contents = await read_validated_upload(file, DOC_TYPES, MAX_FILE_BYTES)
+    asset = await cloudinary_service.upload_file(
+        contents, folder="home_physio_india/therapist_docs", resource_type="auto",
+        original_filename=file.filename
+    )
+    
     doc = TherapistDocument(
-        title=payload.title,
-        file=payload.file,
+        title=title,
+        file=asset,
     )
     user.documents.append(doc)
     await _users.update(user, {"documents": user.documents})

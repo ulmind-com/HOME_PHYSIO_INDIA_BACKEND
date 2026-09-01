@@ -38,6 +38,6 @@ async def list_therapists(
         search=params.search,
         sort_by=params.sort_by,
         sort_order=params.sort_direction,
-        query=query
+        filters=query,
     )
     return paginated_response(UserResponse, items, total, params)
