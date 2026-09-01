@@ -100,4 +100,18 @@ DEFAULT_ROLES: Dict[str, dict] = {
         + [_perm("dashboard", VIEW), _perm("notifications", VIEW)],
         "is_system": True,
     },
+    "therapist": {
+        "name": "Therapist",
+        "description": "Handle assigned bookings and patient reports.",
+        "permissions": [
+            _perm("dashboard", VIEW),
+            _perm("bookings", VIEW),
+            _perm("bookings", UPDATE),
+            _perm("medical_reports", VIEW),
+            _perm("medical_reports", UPDATE),
+            _perm("patients", VIEW),
+            _perm("notifications", VIEW),
+        ],
+        "is_system": True,
+    },
 }

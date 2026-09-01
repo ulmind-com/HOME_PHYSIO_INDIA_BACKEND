@@ -12,6 +12,7 @@ from app.core.exceptions import BadRequestException, ForbiddenException, NotFoun
 from app.core.pagination import PaginationParams, pagination_params
 from app.core.responses import success_response
 from app.dependencies.auth import ActorContext, get_current_active_user, require_permission
+from app.models.booking import Booking
 from app.models.medical_report import MedicalReport, ReportStatus, ReportType
 from app.models.user import User
 from app.repositories.base import BaseRepository
@@ -42,6 +43,27 @@ async def list_reports(
     
     if user.user_type == "patient":
         query["patient_id"] = str(user.id)
+    elif user.role == "therapist":
+        # Therapists can only see reports of patients assigned to them
+        assigned_bookings = await Booking.find(
+            {"assigned_staff_id": str(user.id)}
+        ).to_list()
+        assigned_patient_ids = list({b.patient_id for b in assigned_bookings if b.patient_id})
+        # Also match by email/phone
+        for b in assigned_bookings:
+            if b.contact_email:
+                # Find users by email to get their IDs
+                from app.models.user import User as UserModel
+                patient_user = await UserModel.find_one({"email": b.contact_email})
+                if patient_user:
+                    assigned_patient_ids.append(str(patient_user.id))
+        
+        if patient_id and patient_id in assigned_patient_ids:
+            query["patient_id"] = patient_id
+        elif not patient_id:
+            query["patient_id"] = {"$in": assigned_patient_ids} if assigned_patient_ids else "__none__"
+        else:
+            raise ForbiddenException("You are not assigned to this patient")
     else:
         # Require permission if not a patient
         from app.dependencies.auth import _resolve_permissions

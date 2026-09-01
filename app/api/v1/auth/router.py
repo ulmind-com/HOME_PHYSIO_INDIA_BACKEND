@@ -201,3 +201,55 @@ async def get_my_bookings(user: User = Depends(get_current_active_user)) -> dict
         data=data,
         message="Bookings fetched successfully",
     )
+
+
+@router.get("/me/assigned-bookings", summary="Get therapist's assigned bookings")
+async def get_assigned_bookings(user: User = Depends(get_current_active_user)) -> dict:
+    """Return bookings assigned to the authenticated therapist."""
+    if user.role != "therapist":
+        from app.core.exceptions import ForbiddenException
+        raise ForbiddenException("Only therapists can access assigned bookings")
+    
+    bookings = await Booking.find(
+        {"assigned_staff_id": str(user.id)}
+    ).sort("-created_at").to_list()
+    
+    data = []
+    for b in bookings:
+        doc = b.model_dump(mode="json")
+        doc["id"] = doc.pop("_id", None) or doc.get("id")
+        data.append(doc)
+    
+    return success_response(data=data, message="Assigned bookings fetched")
+
+
+@router.get("/me/patient-reports/{patient_id}", summary="Get patient reports for therapist")
+async def get_patient_reports_for_therapist(
+    patient_id: str,
+    user: User = Depends(get_current_active_user),
+) -> dict:
+    """Return medical reports of a specific patient assigned to the therapist."""
+    if user.role != "therapist":
+        from app.core.exceptions import ForbiddenException
+        raise ForbiddenException("Only therapists can access patient reports")
+    
+    # Verify the therapist is actually assigned to this patient via a booking
+    booking = await Booking.find_one({
+        "assigned_staff_id": str(user.id),
+        "patient_id": patient_id,
+    })
+    if not booking:
+        from app.core.exceptions import ForbiddenException
+        raise ForbiddenException("You are not assigned to this patient")
+    
+    from app.models.medical_report import MedicalReport
+    reports = await MedicalReport.find(
+        {"patient_id": patient_id}
+    ).sort("-created_at").to_list()
+    
+    from app.schemas.medical_report import MedicalReportResponse
+    data = []
+    for r in reports:
+        data.append(MedicalReportResponse.model_validate(r).model_dump(mode="json"))
+    
+    return success_response(data=data, message="Patient reports fetched")
