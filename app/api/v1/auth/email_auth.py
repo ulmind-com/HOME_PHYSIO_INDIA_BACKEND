@@ -114,9 +114,15 @@ async def verify_email(request: Request, response: Response, bg_tasks: Backgroun
     if user.email_verification_otp != payload.otp:
         raise BadRequestException("Invalid OTP.")
         
-    if not user.otp_expires_at or user.otp_expires_at < dt.datetime.now(dt.timezone.utc):
+    if not user.otp_expires_at:
         raise BadRequestException("OTP has expired. Please request a new one.")
         
+    expires_at = user.otp_expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=dt.timezone.utc)
+        
+    if expires_at < dt.datetime.now(dt.timezone.utc):
+        raise BadRequestException("OTP has expired. Please request a new one.")
     # Mark as verified and clear OTP fields
     user.is_email_verified = True
     user.email_verification_otp = None
