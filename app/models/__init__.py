@@ -24,6 +24,7 @@ from app.models.testimonial import Testimonial
 from app.models.therapy_booking import TherapyBooking
 from app.models.token import RefreshToken
 from app.models.user import AdminSession, User
+from app.models.therapist_slot import TherapistSlot
 from app.models.user_type import UserType
 from app.models.video import Video
 
@@ -34,6 +35,7 @@ ALL_DOCUMENT_MODELS = [
     Role,
     Permission,
     UserType,
+    TherapistSlot,
     Category,
     Service,
     Booking,

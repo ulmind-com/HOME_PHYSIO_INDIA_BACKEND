@@ -303,6 +303,33 @@ class EmailService:
         )
         return await self.send(to, "Password Reset Request", body)
 
+    async def send_video_meeting_reminder(
+        self, to: str, name: str, service_name: str, meeting_link: str, date_time: str
+    ) -> bool:
+        body = f"""
+        <div style="text-align: center; padding: 32px 20px;">
+            <div style="background-color: #f0fdfa; display: inline-block; padding: 16px; border-radius: 50%; margin-bottom: 24px;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#0f766e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                </svg>
+            </div>
+            <h1 style="color: #0f766e; font-size: 28px; margin-bottom: 16px; font-weight: 700;">Upcoming Video Consultation!</h1>
+            <p style="font-size: 16px; color: #4b5563; margin-bottom: 24px; line-height: 1.6; max-width: 480px; margin-left: auto; margin-right: auto;">
+                Hi <b>{name}</b>,<br><br>
+                Your 1-on-1 <b>{service_name}</b> video consultation session is starting soon ({date_time}).
+                Please join using the link below:
+            </p>
+            <div style="margin: 32px 0;">
+                <a href="{meeting_link}" style="display: inline-block; background-color: #0f766e; color: #ffffff; text-decoration: none; padding: 16px 36px; border-radius: 8px; font-weight: 700; font-size: 18px; box-shadow: 0 4px 6px -1px rgba(15, 118, 110, 0.3);">
+                    🎥 Join Video Session Now
+                </a>
+            </div>
+            <p style="font-size: 13px; color: #6b7280;">Direct URL: <a href="{meeting_link}" style="color: #0f766e;">{meeting_link}</a></p>
+        </div>
+        """
+        return await self.send(to, f"🎥 Reminder: Your 1-on-1 Video Consultation is starting now!", body)
+
     async def send_admin_notification(self, subject: str, body_html: str) -> bool:
         if not settings.ADMIN_NOTIFICATION_EMAIL:
             return False

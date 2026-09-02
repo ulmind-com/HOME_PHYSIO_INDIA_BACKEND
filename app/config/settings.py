@@ -57,6 +57,11 @@ class Settings(BaseSettings):
     MAIL_ADDRESS: str = "noreply@samiransamanta.in"
     ADMIN_NOTIFICATION_EMAIL: str = ""
 
+    # ---- ZegoCloud Video Consultation ----
+    ZEGO_APP_ID: int = 149684840
+    ZEGO_SERVER_SECRET: str = "a1ba3a9d4ff4b8316a7e97249742c9e4"
+    ZEGO_APP_SIGN: str = "f2a557e8e1f2448f3c016a85c1e5fca9ce353a81df9d65ec0a8dc8965d055807"
+
     # ---- CORS ----
     # Comma-separated string in the environment; use ``cors_origins`` for the
     # parsed list (avoids pydantic-settings JSON-decoding complex env values).
