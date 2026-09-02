@@ -64,6 +64,19 @@ async def get_current_user(
     return user
 
 
+async def get_current_user_optional(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(_bearer),
+) -> Optional[User]:
+    """Resolve the authenticated user if bearer token is provided, else return None."""
+    if credentials is None or not credentials.credentials:
+        return None
+    try:
+        payload = decode_token(credentials.credentials, expected_type=ACCESS_TOKEN_TYPE)
+        return await _users.get(payload.get("sub", ""))
+    except Exception:
+        return None
+
+
 async def get_current_active_user(
     user: User = Depends(get_current_user),
 ) -> User:

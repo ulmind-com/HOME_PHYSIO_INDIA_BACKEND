@@ -5,6 +5,7 @@ from app.dependencies.auth import (
     get_actor,
     get_current_active_user,
     get_current_user,
+    get_current_user_optional,
     require_permission,
     require_superuser,
 )
@@ -13,6 +14,7 @@ __all__ = [
     "ActorContext",
     "get_actor",
     "get_current_user",
+    "get_current_user_optional",
     "get_current_active_user",
     "require_permission",
     "require_superuser",
