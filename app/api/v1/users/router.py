@@ -125,6 +125,7 @@ async def create_user(
         experience_years=payload.experience_years,
         qualification=payload.qualification,
         therapist_tier=payload.therapist_tier,
+        gender=payload.gender,
     )
     await _users.create(user)
 

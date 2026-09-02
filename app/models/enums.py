@@ -129,6 +129,73 @@ class VerificationStatus(StrEnum):
     REJECTED = "rejected"
 
 
+class ServiceCategory(StrEnum):
+    """The 4 home-visit service categories offered on the platform."""
+
+    PHYSIOTHERAPY = "physiotherapy"
+    YOGA_THERAPY = "yoga_therapy"
+    MASSAGE_THERAPY = "massage_therapy"
+    HOME_REHABILITATION = "home_rehabilitation"
+
+
+class FrequencyType(StrEnum):
+    """How a physiotherapy/yoga/rehab visit is billed."""
+
+    DAILY = "daily"
+    WEEKLY = "weekly"
+    PACKAGE = "package"
+
+
+class Shift(StrEnum):
+    """Broad time-of-day window the patient picks before a time slot."""
+
+    MORNING = "morning"
+    NOON = "noon"
+    AFTERNOON = "afternoon"
+    EVENING = "evening"
+
+
+class EquipmentCode(StrEnum):
+    """Portable equipment/modalities available for home-visit sessions."""
+
+    IFT = "ift"
+    TENS = "tens"
+    UST = "ust"
+    NMES = "nmes"
+    FES = "fes"
+    PORTABLE_EMS = "portable_ems"
+    WAX_BATH = "wax_bath"
+    HOT_COLD = "hot_cold"
+    THERABAND = "theraband"
+
+
+class MassageType(StrEnum):
+    """Massage therapy pricing tiers."""
+
+    NORMAL_OIL = "normal_oil"
+    DRY = "dry"
+    DEEP_TISSUE = "deep_tissue"
+
+
+class PackageDuration(StrEnum):
+    """Multi-visit package lengths."""
+
+    MONTHLY = "monthly"
+    QUARTERLY = "quarterly"
+    HALF_YEARLY = "half_yearly"
+    YEARLY = "yearly"
+    CUSTOM = "custom"
+
+
+class PaymentStatus(StrEnum):
+    """Lifecycle of a Razorpay payment against a therapy booking."""
+
+    PENDING = "pending"
+    PAID = "paid"
+    FAILED = "failed"
+    REFUNDED = "refunded"
+
+
 class ActivityAction(StrEnum):
     """Admin action recorded in the activity log."""
 

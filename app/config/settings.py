@@ -71,6 +71,10 @@ class Settings(BaseSettings):
     FIREBASE_SERVICE_ACCOUNT_PATH: str = ""
     FIREBASE_SERVICE_ACCOUNT_JSON: str = ""
 
+    # ---- Razorpay ----
+    RAZORPAY_KEY_ID: str = ""
+    RAZORPAY_KEY_SECRET: str = ""
+
     # ---- Frontend ----
     FRONTEND_URL: str = "http://localhost:3000"
 
@@ -110,6 +114,11 @@ class Settings(BaseSettings):
     def firebase_enabled(self) -> bool:
         """Return ``True`` only when Firebase project ID is configured."""
         return bool(self.FIREBASE_PROJECT_ID)
+
+    @property
+    def razorpay_enabled(self) -> bool:
+        """Return ``True`` only when Razorpay credentials are present."""
+        return bool(self.RAZORPAY_KEY_ID and self.RAZORPAY_KEY_SECRET)
 
 
 @lru_cache

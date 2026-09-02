@@ -39,6 +39,7 @@ class UserCreate(BaseModel):
     experience_years: Optional[int] = Field(None, ge=0, le=60)
     qualification: Optional[str] = None
     therapist_tier: Optional[str] = None
+    gender: Optional[str] = None
 
 
 class UserUpdate(BaseModel):
@@ -55,6 +56,7 @@ class UserUpdate(BaseModel):
     experience_years: Optional[int] = Field(None, ge=0, le=60)
     qualification: Optional[str] = None
     therapist_tier: Optional[str] = None
+    gender: Optional[str] = None
 
 
 class TherapistVerificationUpdate(BaseModel):
@@ -74,6 +76,7 @@ class UserResponse(IdTimestampSchema):
     address: Optional[str] = None
     avatar: Optional[ImageAsset] = None
     age: Optional[int] = None
+    gender: Optional[str] = None
     pincode: Optional[str] = None
     medical_condition: Optional[str] = None
     specialization: Optional[str] = None
@@ -97,6 +100,7 @@ class ProfileUpdate(BaseModel):
     phone: Optional[str] = Field(None, max_length=20)
     address: Optional[str] = Field(None, max_length=500)
     age: Optional[int] = Field(None, ge=0, le=120)
+    gender: Optional[str] = None
     pincode: Optional[str] = Field(None, min_length=4, max_length=10)
     medical_condition: Optional[str] = Field(None, max_length=2000)
 

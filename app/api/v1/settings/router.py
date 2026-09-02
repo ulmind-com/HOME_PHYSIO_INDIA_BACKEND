@@ -8,8 +8,10 @@ from app.api.helpers import item_response
 from app.core.exceptions import NotFoundException
 from app.core.responses import success_response
 from app.dependencies.auth import ActorContext, require_permission
+from app.models.pricing_settings import PricingSettings
 from app.models.settings import SEOSettings, SocialLinks, WebsiteSettings
 from app.repositories.base import BaseRepository
+from app.schemas.pricing_settings import PricingSettingsResponse, PricingSettingsUpdate
 from app.schemas.settings import (
     SEOSettingsResponse,
     SEOSettingsUpsert,
@@ -24,6 +26,15 @@ router = APIRouter(prefix="/settings", tags=["Settings & SEO"])
 _website: BaseRepository[WebsiteSettings] = BaseRepository(WebsiteSettings)
 _social: BaseRepository[SocialLinks] = BaseRepository(SocialLinks)
 _seo: BaseRepository[SEOSettings] = BaseRepository(SEOSettings)
+_pricing: BaseRepository[PricingSettings] = BaseRepository(PricingSettings)
+
+
+async def _get_or_create_pricing() -> PricingSettings:
+    doc = await _pricing.find_one({})
+    if doc is None:
+        doc = PricingSettings()
+        await _pricing.create(doc)
+    return doc
 
 
 async def _get_or_create_website() -> WebsiteSettings:
@@ -114,3 +125,24 @@ async def upsert_seo(
         await _seo.update(doc, payload.model_dump(exclude={"page_key"}))
         message = "SEO settings updated"
     return item_response(SEOSettingsResponse, doc, message)
+
+
+# ---- Therapy booking pricing & refund policy (singleton) --------------
+
+
+@router.get("/pricing", summary="Get therapy booking pricing settings")
+async def get_pricing_settings(
+    _: ActorContext = Depends(require_permission("settings", "view")),
+) -> dict:
+    doc = await _get_or_create_pricing()
+    return item_response(PricingSettingsResponse, doc)
+
+
+@router.put("/pricing", summary="Update therapy booking pricing settings")
+async def update_pricing_settings(
+    payload: PricingSettingsUpdate,
+    actor: ActorContext = Depends(require_permission("settings", "update")),
+) -> dict:
+    doc = await _get_or_create_pricing()
+    await _pricing.update(doc, payload.model_dump(exclude_unset=True))
+    return item_response(PricingSettingsResponse, doc, "Pricing settings updated")

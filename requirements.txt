@@ -24,6 +24,12 @@ pyjwt==2.10.1
 cloudinary==1.41.0
 python-multipart==0.0.20
 
+# ---- Payments ----
+# Calls the Razorpay REST API directly over `requests` (already a transitive
+# dependency) instead of the official SDK, which pulls in `pkg_resources`
+# and breaks on modern setuptools that no longer bundle it.
+requests==2.34.2
+
 # ---- Email ----
 aiosmtplib==3.0.2
 jinja2==3.1.5

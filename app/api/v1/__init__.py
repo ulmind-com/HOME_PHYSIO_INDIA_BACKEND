@@ -24,6 +24,7 @@ from app.api.v1.user_types.router import router as user_types_router
 from app.api.v1.videos.router import router as videos_router
 from app.api.v1.medical_reports.router import router as medical_reports_router
 from app.api.v1.therapists.router import router as therapists_router
+from app.api.v1.therapy_bookings.router import router as therapy_bookings_router
 
 api_router = APIRouter()
 
@@ -49,6 +50,7 @@ api_router.include_router(notifications_router)
 api_router.include_router(uploads_router)
 api_router.include_router(search_router)
 api_router.include_router(therapists_router)
+api_router.include_router(therapy_bookings_router)
 
 
 __all__ = ["api_router"]

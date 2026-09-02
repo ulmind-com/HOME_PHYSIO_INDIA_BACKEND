@@ -16,6 +16,11 @@ os.environ.setdefault("MONGODB_DB_NAME", "home_physio_india_test")
 os.environ.setdefault("CORS_ORIGINS", "*")
 os.environ.setdefault("FIRST_ADMIN_EMAIL", "admin@test.com")
 os.environ.setdefault("FIRST_ADMIN_PASSWORD", "Admin@12345")
+# The auth rate limiter's in-memory counter persists for the whole pytest
+# process; many tests use the function-scoped `auth_headers` fixture (a
+# fresh /auth/login per test), so the default 10/minute production limit
+# gets exhausted well before the full suite finishes. Raise it for tests only.
+os.environ.setdefault("RATE_LIMIT_AUTH", "1000/minute")
 
 import pytest_asyncio
 from beanie import init_beanie

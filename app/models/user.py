@@ -38,6 +38,7 @@ class User(TimestampedDocument):
 
     # Patient-specific onboarding fields
     age: Optional[int] = None
+    gender: Optional[str] = None
     pincode: Optional[str] = None
     medical_condition: Optional[str] = None
 
