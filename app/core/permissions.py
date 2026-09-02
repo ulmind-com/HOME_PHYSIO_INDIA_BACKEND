@@ -40,6 +40,7 @@ RESOURCES = [
     "notifications",
     "activity_logs",
     "medical_reports",
+    "commissions",
 ]
 
 
@@ -114,6 +115,7 @@ DEFAULT_ROLES: Dict[str, dict] = {
             _perm("medical_reports", UPDATE),
             _perm("patients", VIEW),
             _perm("notifications", VIEW),
+            _perm("commissions", VIEW),
         ],
         "is_system": True,
     },

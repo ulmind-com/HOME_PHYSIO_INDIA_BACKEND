@@ -208,3 +208,20 @@ class ActivityAction(StrEnum):
     REJECT = "reject"
     UPLOAD = "upload"
     EXPORT = "export"
+
+
+class EarningStatus(StrEnum):
+    """Status of a therapist's commission earning from a booking."""
+
+    PENDING = "pending"
+    SETTLED = "settled"
+    REVERSED = "reversed"
+
+
+class PayoutStatus(StrEnum):
+    """Admin-to-therapist manual payout status."""
+
+    PENDING = "pending"
+    PAID = "paid"
+    FAILED = "failed"
+

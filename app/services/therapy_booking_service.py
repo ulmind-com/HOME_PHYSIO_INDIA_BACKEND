@@ -16,6 +16,7 @@ from app.repositories.base import BaseRepository
 from app.schemas.therapy_booking import PaymentVerifyRequest, PricingQuoteRequest, TherapyBookingCreate
 from app.services import pricing_service
 from app.services.activity_service import activity_service
+from app.services.commission_service import commission_service
 from app.services.email_service import email_service
 from app.services.notification_service import notification_service
 from app.services.razorpay_service import razorpay_service
@@ -305,6 +306,21 @@ class TherapyBookingService:
             entity_id=str(booking.id), description=f"Therapy booking {status}",
             ip_address=actor.ip_address, user_agent=actor.user_agent,
         )
+
+        # Commission hooks: credit on COMPLETED, reverse on CANCELLED/REJECTED
+        if status == BookingStatus.COMPLETED and was_paid and booking.assigned_staff_id:
+            try:
+                await commission_service.credit_earning(booking)
+            except Exception as exc:
+                import logging
+                logging.getLogger(__name__).error("Commission credit failed for %s: %s", booking.reference, exc)
+        elif status in {BookingStatus.CANCELLED, BookingStatus.REJECTED}:
+            try:
+                await commission_service.reverse_earning(str(booking.id))
+            except Exception as exc:
+                import logging
+                logging.getLogger(__name__).error("Commission reversal failed for %s: %s", booking.reference, exc)
+
         return booking
 
     async def patient_cancel(self, booking_id: str, patient_id: str, reason: Optional[str]) -> TherapyBooking:
@@ -341,6 +357,14 @@ class TherapyBookingService:
             reference_id=str(booking.id),
             link="/therapy-bookings",
         )
+
+        # Reverse any commission earned on this booking
+        try:
+            await commission_service.reverse_earning(str(booking.id))
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).error("Commission reversal failed for patient cancel %s: %s", booking.reference, exc)
+
         return booking
 
     async def assign_staff(
