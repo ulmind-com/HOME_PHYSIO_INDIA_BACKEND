@@ -25,6 +25,7 @@ from app.api.v1.videos.router import router as videos_router
 from app.api.v1.medical_reports.router import router as medical_reports_router
 from app.api.v1.therapists.router import router as therapists_router
 from app.api.v1.therapy_bookings.router import router as therapy_bookings_router
+from app.api.v1.therapy_equipment.router import router as therapy_equipment_router
 from app.api.v1.video.router import router as video_router
 from app.api.v1.commissions.router import router as commissions_router
 
@@ -53,6 +54,7 @@ api_router.include_router(uploads_router)
 api_router.include_router(search_router)
 api_router.include_router(therapists_router)
 api_router.include_router(therapy_bookings_router)
+api_router.include_router(therapy_equipment_router)
 api_router.include_router(video_router)
 api_router.include_router(commissions_router)
 

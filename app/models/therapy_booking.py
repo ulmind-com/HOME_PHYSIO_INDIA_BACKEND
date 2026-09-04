@@ -17,6 +17,7 @@ from beanie import Indexed
 from pydantic import EmailStr, Field
 
 from app.models.base import TimestampedDocument
+from app.models.therapy_equipment import BookedEquipment
 from app.models.enums import (
     BookingStatus,
     EquipmentCode,
@@ -65,8 +66,14 @@ class TherapyBooking(TimestampedDocument):
     package_duration: Optional[PackageDuration] = None
     package_custom_months: Optional[int] = None
 
-    # Equipment (physiotherapy / yoga_therapy / home_rehabilitation only)
+    # Equipment. ``equipment`` holds the legacy hardcoded modality codes and is
+    # only populated for bookings made before the equipment catalogue moved into
+    # the database; new bookings use ``equipment_items`` (priced snapshots).
     equipment: List[EquipmentCode] = Field(default_factory=list)
+    equipment_items: List[BookedEquipment] = Field(default_factory=list)
+
+    # Slot booked from the therapist's own calendar (therapist-first flow).
+    slot_id: Optional[str] = None
 
     # Massage-specific
     massage_type: Optional[MassageType] = None

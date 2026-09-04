@@ -3,18 +3,20 @@ payment, and admin workflow (approve/reject/assign)."""
 
 from __future__ import annotations
 
+import datetime as dt
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, Query, Request
+from pydantic import BaseModel, Field
 
 from app.api.helpers import item_response, paginated_response
 from app.config import settings
-from app.core.exceptions import ForbiddenException
+from app.core.exceptions import BadRequestException, ForbiddenException, NotFoundException
 from app.core.pagination import PaginationParams, pagination_params
 from app.core.permissions import ALL
 from app.dependencies.auth import ActorContext, _resolve_permissions, get_current_active_user, require_permission
-from app.models.enums import BookingStatus, EquipmentCode, Shift
+from app.models.enums import BookingStatus, EquipmentCode, Shift, SlotType
+from app.models.therapist_slot import TherapistSlot
 from app.models.user import User
 from app.schemas.therapy_booking import (
     PaymentVerifyRequest,
@@ -29,6 +31,12 @@ from app.schemas.therapy_booking import (
 from app.services.therapy_booking_service import therapy_booking_service
 
 router = APIRouter(prefix="/therapy-bookings", tags=["Therapy Bookings"])
+
+
+class HomeVisitSlotCreate(BaseModel):
+    date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$", description="YYYY-MM-DD")
+    start_time: str = Field(..., pattern=r"^\d{2}:\d{2}$", description="HH:MM")
+    end_time: str = Field(..., pattern=r"^\d{2}:\d{2}$", description="HH:MM")
 
 
 class EquipmentOption(BaseModel):
@@ -59,9 +67,120 @@ TIME_SLOTS = {
 }
 
 
-@router.get("/equipment", summary="List portable equipment/modality options")
+@router.get("/equipment", summary="List portable equipment/modality options (legacy)")
 async def list_equipment(_: User = Depends(get_current_active_user)) -> dict:
+    """Superseded by ``GET /therapy-equipment/for-booking``, which is
+    category-aware and includes the therapist's own equipment. Kept so older
+    clients keep working."""
     return {"success": True, "data": [e.model_dump() for e in EQUIPMENT_CATALOGUE]}
+
+
+@router.get("/therapist-availability", summary="Free home-visit slots for a therapist")
+async def therapist_availability(
+    therapist_id: str = Query(...),
+    date_from: Optional[str] = Query(None, description="YYYY-MM-DD, defaults to today"),
+    date_to: Optional[str] = Query(None, description="YYYY-MM-DD"),
+    include_booked: bool = Query(False, description="Also return already-taken slots (greyed out in UI)"),
+    _: User = Depends(get_current_active_user),
+) -> dict:
+    """What the patient picks from — only this therapist's home-visit slots.
+
+    Past dates are never returned, and taken slots are excluded unless the
+    caller explicitly asks for them so the UI can grey them out.
+    """
+    start = date_from or dt.date.today().isoformat()
+    query: dict = {
+        "therapist_id": therapist_id,
+        "slot_type": SlotType.HOME_VISIT.value,
+        "date": {"$gte": start},
+    }
+    if date_to:
+        query["date"]["$lte"] = date_to
+    if not include_booked:
+        query["is_booked"] = False
+
+    slots = await TherapistSlot.find(query).sort("+date", "+start_time").to_list()
+    data = [
+        {
+            "id": str(s.id),
+            "date": s.date,
+            "start_time": s.start_time,
+            "end_time": s.end_time,
+            "is_booked": s.is_booked,
+        }
+        for s in slots
+    ]
+    return {"success": True, "data": data}
+
+
+@router.get("/my-slots", summary="My published home-visit slots (therapist)")
+async def my_slots(
+    date_from: Optional[str] = Query(None),
+    user: User = Depends(get_current_active_user),
+) -> dict:
+    query: dict = {"therapist_id": str(user.id), "slot_type": SlotType.HOME_VISIT.value}
+    if date_from:
+        query["date"] = {"$gte": date_from}
+    slots = await TherapistSlot.find(query).sort("+date", "+start_time").to_list()
+    data = [
+        {
+            "id": str(s.id),
+            "date": s.date,
+            "start_time": s.start_time,
+            "end_time": s.end_time,
+            "is_booked": s.is_booked,
+            "booked_by_patient_name": s.booked_by_patient_name,
+            "booking_reference": s.booking_reference,
+        }
+        for s in slots
+    ]
+    return {"success": True, "data": data}
+
+
+@router.post("/my-slots", status_code=201, summary="Publish a home-visit slot (therapist)")
+async def create_my_slot(
+    payload: HomeVisitSlotCreate,
+    user: User = Depends(get_current_active_user),
+) -> dict:
+    if user.role != "therapist":
+        raise ForbiddenException("Only therapists can publish slots")
+    if user.verification_status != "approved":
+        raise ForbiddenException("Your account is still pending approval")
+
+    existing = await TherapistSlot.find_one(
+        {
+            "therapist_id": str(user.id),
+            "slot_type": SlotType.HOME_VISIT.value,
+            "date": payload.date,
+            "start_time": payload.start_time,
+        }
+    )
+    if existing:
+        raise BadRequestException("You already have a slot starting at that time on that date")
+
+    slot = TherapistSlot(
+        therapist_id=str(user.id),
+        therapist_name=user.name,
+        slot_type=SlotType.HOME_VISIT,
+        date=payload.date,
+        start_time=payload.start_time,
+        end_time=payload.end_time,
+    )
+    await slot.insert()
+    return {"success": True, "message": "Slot published", "data": {"id": str(slot.id)}}
+
+
+@router.delete("/my-slots/{slot_id}", summary="Remove one of my slots (therapist)")
+async def delete_my_slot(slot_id: str, user: User = Depends(get_current_active_user)) -> dict:
+    slot = await TherapistSlot.get(slot_id)
+    if slot is None:
+        raise NotFoundException("Slot not found")
+    if slot.therapist_id != str(user.id) and not user.is_superuser:
+        raise ForbiddenException("That slot isn't yours")
+    if slot.is_booked:
+        raise BadRequestException("This slot is already booked — cancel the booking first")
+    await slot.delete()
+    return {"success": True, "message": "Slot removed"}
 
 
 @router.get("/time-slots", summary="List available time slots for a shift")
@@ -178,6 +297,42 @@ async def update_status(
     payload: TherapyBookingStatusUpdate,
     actor: ActorContext = Depends(require_permission("therapy_bookings", "update")),
 ) -> dict:
+    booking = await therapy_booking_service.change_status(booking_id, status, actor, reason=payload.reason)
+    return item_response(TherapyBookingResponse, booking, f"Booking {status}")
+
+
+@router.patch("/{booking_id}/my-status", summary="Update a booking assigned to me (therapist)")
+async def therapist_update_status(
+    booking_id: str,
+    status: BookingStatus,
+    payload: TherapyBookingStatusUpdate,
+    request: Request,
+    user: User = Depends(get_current_active_user),
+) -> dict:
+    """Let the assigned therapist move their own booking along.
+
+    Deliberately narrower than the admin endpoint: a therapist can confirm a
+    visit, start it, finish it, or cancel it — but can't approve an unpaid
+    booking or touch someone else's work.
+    """
+    booking = await therapy_booking_service.get_or_404(booking_id)
+    if booking.assigned_staff_id != str(user.id):
+        raise ForbiddenException("This booking isn't assigned to you")
+
+    allowed = {
+        BookingStatus.APPROVED,
+        BookingStatus.IN_PROGRESS,
+        BookingStatus.COMPLETED,
+        BookingStatus.CANCELLED,
+    }
+    if status not in allowed:
+        raise BadRequestException(f"Therapists can't set a booking to '{status}'")
+
+    actor = ActorContext(
+        user=user,
+        ip_address=request.headers.get("X-Forwarded-For") or (request.client.host if request.client else None),
+        user_agent=request.headers.get("User-Agent"),
+    )
     booking = await therapy_booking_service.change_status(booking_id, status, actor, reason=payload.reason)
     return item_response(TherapyBookingResponse, booking, f"Booking {status}")
 

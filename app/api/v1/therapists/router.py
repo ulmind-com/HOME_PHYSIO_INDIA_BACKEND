@@ -25,9 +25,22 @@ async def list_therapists(
     user_type: Optional[str] = Query(
         None, description="physiotherapist | yoga_therapist | massage_therapist"
     ),
-    _: User = Depends(get_current_active_user),  # Must be logged in
+    gender: Optional[str] = Query(None, description="Filter to therapists of this gender"),
+    match_my_gender: bool = Query(
+        False,
+        description=(
+            "Return only therapists whose gender matches the caller's. Massage "
+            "therapy always applies this, whatever the flag says."
+        ),
+    ),
+    user: User = Depends(get_current_active_user),  # Must be logged in
 ) -> dict:
-    """Paginated list of admin-approved, active therapists for the directory."""
+    """Paginated list of admin-approved, active therapists for the directory.
+
+    Massage therapy is gender-matched by policy, so a massage search silently
+    restricts results to the caller's own gender — a patient never sees a
+    therapist they wouldn't be allowed to book.
+    """
     query = {
         "role": "therapist",
         "is_active": True,
@@ -37,6 +50,17 @@ async def list_therapists(
         query["specialization"] = specialization
     if user_type:
         query["user_type"] = user_type
+
+    wants_massage = user_type == "massage_therapist"
+    if gender:
+        query["gender"] = gender
+    elif wants_massage or match_my_gender:
+        if not user.gender:
+            # Without a gender on the profile we can't honour the safety rule,
+            # so return nothing rather than showing unbookable therapists.
+            query["gender"] = "__unset__"
+        else:
+            query["gender"] = user.gender
 
     items, total = await _users.paginate(
         page=params.page,

@@ -24,6 +24,7 @@ RESOURCES = [
     "categories",
     "bookings",
     "therapy_bookings",
+    "therapy_equipment",
     "patients",
     "equipment",
     "rentals",
@@ -96,7 +97,7 @@ DEFAULT_ROLES: Dict[str, dict] = {
         "description": "Handle bookings, rentals, contacts and applications.",
         "permissions": [
             _perm(r, a)
-            for r in ("bookings", "therapy_bookings", "rentals", "contacts", "applications", "patients", "medical_reports")
+            for r in ("bookings", "therapy_bookings", "therapy_equipment", "rentals", "contacts", "applications", "patients", "medical_reports")
             for a in (VIEW, UPDATE)
         ]
         + [_perm("dashboard", VIEW), _perm("notifications", VIEW)],

@@ -22,6 +22,7 @@ from app.models.settings import SEOSettings, SocialLinks, WebsiteSettings
 from app.models.staff import StaffMember
 from app.models.testimonial import Testimonial
 from app.models.therapy_booking import TherapyBooking
+from app.models.therapy_equipment import TherapyEquipment
 from app.models.token import RefreshToken
 from app.models.user import AdminSession, User
 from app.models.therapist_earning import TherapistEarning
@@ -43,6 +44,7 @@ ALL_DOCUMENT_MODELS = [
     Booking,
     Patient,
     TherapyBooking,
+    TherapyEquipment,
     Equipment,
     EquipmentCategory,
     EquipmentRental,
@@ -83,6 +85,7 @@ __all__ = [
     "Booking",
     "Patient",
     "TherapyBooking",
+    "TherapyEquipment",
     "Equipment",
     "EquipmentCategory",
     "EquipmentRental",

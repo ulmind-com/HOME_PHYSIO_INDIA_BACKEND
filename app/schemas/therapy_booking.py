@@ -18,6 +18,7 @@ from app.models.enums import (
     Shift,
     ServiceCategory,
 )
+from app.models.therapy_equipment import BookedEquipment
 from app.schemas.common import IdTimestampSchema
 
 
@@ -38,10 +39,19 @@ class TherapyBookingCreate(BaseModel):
     service_category: ServiceCategory
     condition_notes: Optional[str] = Field(None, max_length=2000)
 
-    preferred_date: dt.date
-    shift: Shift
-    time_slot: str = Field(..., min_length=3, max_length=40)
+    # Therapist-first flow: pick a therapist and one of their published slots.
+    # When ``slot_id`` is given, the date / shift / time_slot below are derived
+    # from the slot and may be omitted.
+    therapist_id: Optional[str] = None
+    slot_id: Optional[str] = None
+
+    preferred_date: Optional[dt.date] = None
+    shift: Optional[Shift] = None
+    time_slot: Optional[str] = Field(None, min_length=3, max_length=40)
     session_duration_minutes: int = Field(45, ge=40, le=60)
+
+    #: Equipment chosen from the catalogue (platform + that therapist's own).
+    equipment_ids: List[str] = Field(default_factory=list)
 
     # Physiotherapy / Yoga Therapy / Home Rehabilitation
     frequency_type: Optional[FrequencyType] = None
@@ -64,8 +74,8 @@ class TherapyBookingCreate(BaseModel):
                 raise ValueError("massage_duration_minutes is required for massage therapy bookings")
             if not self.patient_gender:
                 raise ValueError("patient_gender is required for massage therapy bookings (therapist gender matching)")
-            if self.frequency_type or self.equipment:
-                raise ValueError("Massage therapy does not support frequency/package or equipment selection")
+            if self.frequency_type:
+                raise ValueError("Massage therapy is a single session — it has no frequency or package option")
         else:
             if not self.frequency_type:
                 raise ValueError("frequency_type is required")
@@ -80,6 +90,16 @@ class TherapyBookingCreate(BaseModel):
                     raise ValueError("package_custom_months is required for a custom package")
             if self.massage_type or self.massage_duration_minutes:
                 raise ValueError("massage_type/massage_duration_minutes only apply to massage therapy")
+
+        # Scheduling: either book a therapist's published slot, or supply the
+        # date/shift/time_slot explicitly (legacy service-first flow).
+        if self.slot_id:
+            if not self.therapist_id:
+                raise ValueError("therapist_id is required when booking a slot")
+        elif not (self.preferred_date and self.shift and self.time_slot):
+            raise ValueError(
+                "Provide either slot_id (with therapist_id), or preferred_date + shift + time_slot"
+            )
         return self
 
 
@@ -90,6 +110,7 @@ class PricingQuoteRequest(BaseModel):
     frequency_type: Optional[FrequencyType] = None
     daily_visits_per_day: Optional[int] = Field(None, ge=1, le=3)
     equipment: List[EquipmentCode] = Field(default_factory=list)
+    equipment_ids: List[str] = Field(default_factory=list)
     massage_type: Optional[MassageType] = None
     massage_duration_minutes: Optional[int] = Field(None, ge=30, le=120)
 
@@ -167,6 +188,8 @@ class TherapyBookingResponse(IdTimestampSchema):
     package_duration: Optional[PackageDuration] = None
     package_custom_months: Optional[int] = None
     equipment: List[EquipmentCode] = Field(default_factory=list)
+    equipment_items: List[BookedEquipment] = Field(default_factory=list)
+    slot_id: Optional[str] = None
 
     massage_type: Optional[MassageType] = None
     massage_duration_minutes: Optional[int] = None

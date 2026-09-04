@@ -169,6 +169,20 @@ class EquipmentCode(StrEnum):
     THERABAND = "theraband"
 
 
+class EquipmentOwner(StrEnum):
+    """Who owns a piece of bookable therapy equipment."""
+
+    PLATFORM = "platform"
+    THERAPIST = "therapist"
+
+
+class SlotType(StrEnum):
+    """What kind of appointment a therapist slot can be booked for."""
+
+    HOME_VISIT = "home_visit"
+    VIDEO = "video"
+
+
 class MassageType(StrEnum):
     """Massage therapy pricing tiers."""
 

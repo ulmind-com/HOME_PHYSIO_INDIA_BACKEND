@@ -5,12 +5,27 @@ from __future__ import annotations
 import datetime as dt
 from typing import Any, Dict, List, Optional, Tuple
 
+from bson import ObjectId
+from bson.errors import InvalidId
+
 from app.core.exceptions import BadRequestException, ForbiddenException, NotFoundException
 from app.dependencies.auth import ActorContext
 from app.models.base import utcnow
-from app.models.enums import ActivityAction, BookingStatus, NotificationType, PaymentStatus, ServiceCategory
+from app.models.enums import (
+    ActivityAction,
+    BookingStatus,
+    EquipmentOwner,
+    Gender,
+    NotificationType,
+    PaymentStatus,
+    ServiceCategory,
+    Shift,
+    SlotType,
+)
 from app.models.pricing_settings import PricingSettings
+from app.models.therapist_slot import TherapistSlot
 from app.models.therapy_booking import TherapyBooking
+from app.models.therapy_equipment import BookedEquipment, TherapyEquipment
 from app.models.user import User
 from app.repositories.base import BaseRepository
 from app.schemas.therapy_booking import PaymentVerifyRequest, PricingQuoteRequest, TherapyBookingCreate
@@ -52,12 +67,74 @@ class TherapyBookingService:
         return rates
 
     @staticmethod
-    async def compute_pricing(payload: TherapyBookingCreate | PricingQuoteRequest) -> pricing_service.PricingResult:
+    async def resolve_equipment(
+        equipment_ids: List[str],
+        service_category: ServiceCategory,
+        therapist_id: Optional[str] = None,
+    ) -> List[BookedEquipment]:
+        """Turn selected equipment ids into priced snapshots.
+
+        Rejects anything that isn't offered for this booking: wrong service
+        category, inactive, or another therapist's personal equipment.
+        """
+        if not equipment_ids:
+            return []
+
+        object_ids = []
+        for eid in equipment_ids:
+            try:
+                object_ids.append(ObjectId(eid))
+            except (InvalidId, TypeError):
+                raise BadRequestException(f"Invalid equipment id: {eid}")
+
+        items = await TherapyEquipment.find({"_id": {"$in": object_ids}}).to_list()
+        found = {str(i.id): i for i in items}
+
+        snapshots: List[BookedEquipment] = []
+        for eid in equipment_ids:
+            item = found.get(eid)
+            if item is None:
+                raise BadRequestException(f"Equipment not found: {eid}")
+            if not item.is_active:
+                raise BadRequestException(f"'{item.name}' is no longer available")
+            if item.category != service_category:
+                raise BadRequestException(
+                    f"'{item.name}' is not available for {service_category.value.replace('_', ' ')}"
+                )
+            if item.owner_type == EquipmentOwner.THERAPIST and item.therapist_id != therapist_id:
+                raise BadRequestException(
+                    f"'{item.name}' belongs to a different therapist and can't be added to this booking"
+                )
+            snapshots.append(
+                BookedEquipment(
+                    equipment_id=str(item.id),
+                    name=item.name,
+                    charge=item.charge,
+                    owner_type=item.owner_type.value,
+                )
+            )
+        return snapshots
+
+    @staticmethod
+    async def compute_pricing(
+        payload: TherapyBookingCreate | PricingQuoteRequest,
+        equipment_items: Optional[List[BookedEquipment]] = None,
+    ) -> pricing_service.PricingResult:
         rates = await TherapyBookingService.get_rates()
+
+        if equipment_items is None:
+            equipment_items = await TherapyBookingService.resolve_equipment(
+                list(getattr(payload, "equipment_ids", []) or []),
+                payload.service_category,
+                getattr(payload, "therapist_id", None),
+            )
+        charges = [e.charge for e in equipment_items]
+
         if payload.service_category == ServiceCategory.MASSAGE_THERAPY:
             return pricing_service.price_massage_booking(
                 massage_type=payload.massage_type,
                 massage_duration_minutes=payload.massage_duration_minutes,
+                equipment_charges=charges,
                 rates=rates,
             )
         return pricing_service.price_visit_booking(
@@ -65,7 +142,102 @@ class TherapyBookingService:
             frequency_type=payload.frequency_type,
             daily_visits_per_day=payload.daily_visits_per_day,
             equipment=payload.equipment,
+            equipment_charges=charges,
             rates=rates,
+        )
+
+    # ---- Therapist & slot resolution ---------------------------------------
+
+    @staticmethod
+    def _shift_for(start_time: str) -> Shift:
+        """Bucket a 'HH:MM' start time into the patient-facing shift label."""
+        hour = int(start_time.split(":")[0])
+        if hour < 12:
+            return Shift.MORNING
+        if hour < 14:
+            return Shift.NOON
+        if hour < 17:
+            return Shift.AFTERNOON
+        return Shift.EVENING
+
+    @staticmethod
+    async def validate_therapist_for_booking(
+        therapist_id: str,
+        service_category: ServiceCategory,
+        patient_gender: Optional[Gender],
+    ) -> User:
+        """Check a therapist may take this booking, before any money moves."""
+        therapist = await User.get(therapist_id)
+        if therapist is None or therapist.role != "therapist":
+            raise BadRequestException("Selected therapist not found")
+        if not therapist.is_active or therapist.verification_status != "approved":
+            raise BadRequestException("This therapist is not currently accepting bookings")
+
+        allowed = ASSIGNABLE_USER_TYPES.get(service_category, set())
+        if therapist.user_type not in allowed:
+            raise BadRequestException(
+                f"{therapist.name} does not provide {service_category.value.replace('_', ' ')}"
+            )
+
+        if service_category == ServiceCategory.MASSAGE_THERAPY:
+            wanted = patient_gender.value if patient_gender else None
+            if not wanted or not therapist.gender or therapist.gender != wanted:
+                raise BadRequestException(
+                    "Massage therapy requires a therapist of the same gender as the patient (safety policy)"
+                )
+        return therapist
+
+    async def _claim_slot(self, slot_id: str, therapist_id: str, patient_name: str, user_id: str) -> TherapistSlot:
+        """Atomically take a free slot, or fail if someone else just took it."""
+        try:
+            oid = ObjectId(slot_id)
+        except (InvalidId, TypeError):
+            raise BadRequestException("Invalid slot id")
+
+        slot = await TherapistSlot.get(slot_id)
+        if slot is None:
+            raise NotFoundException("Slot not found")
+        if slot.therapist_id != therapist_id:
+            raise BadRequestException("That slot belongs to a different therapist")
+        if slot.slot_type != SlotType.HOME_VISIT:
+            raise BadRequestException("That slot is not a home-visit slot")
+
+        result = await TherapistSlot.get_motor_collection().update_one(
+            {"_id": oid, "is_booked": False},
+            {
+                "$set": {
+                    "is_booked": True,
+                    "booked_by_user_id": user_id,
+                    "booked_by_patient_name": patient_name,
+                    "updated_at": utcnow(),
+                }
+            },
+        )
+        if result.matched_count == 0:
+            raise BadRequestException("That slot was just booked by someone else — please pick another")
+
+        return await TherapistSlot.get(slot_id)
+
+    async def _release_slot(self, booking: TherapyBooking) -> None:
+        """Free the slot a cancelled/rejected booking was holding."""
+        if not booking.slot_id:
+            return
+        try:
+            oid = ObjectId(booking.slot_id)
+        except (InvalidId, TypeError):
+            return
+        await TherapistSlot.get_motor_collection().update_one(
+            {"_id": oid},
+            {
+                "$set": {
+                    "is_booked": False,
+                    "booked_by_user_id": None,
+                    "booked_by_patient_name": None,
+                    "therapy_booking_id": None,
+                    "booking_reference": None,
+                    "updated_at": utcnow(),
+                }
+            },
         )
 
     # ---- Create + payment -------------------------------------------------
@@ -73,7 +245,34 @@ class TherapyBookingService:
     async def create_with_payment_order(
         self, payload: TherapyBookingCreate, patient_id: Optional[str]
     ) -> Tuple[TherapyBooking, Dict[str, Any]]:
-        pricing = await self.compute_pricing(payload)
+        therapist: Optional[User] = None
+        slot: Optional[TherapistSlot] = None
+
+        # Therapist-first flow: validate the therapist, then take their slot.
+        if payload.therapist_id:
+            therapist = await self.validate_therapist_for_booking(
+                payload.therapist_id, payload.service_category, payload.patient_gender
+            )
+
+        equipment_items = await self.resolve_equipment(
+            payload.equipment_ids, payload.service_category, payload.therapist_id
+        )
+        pricing = await self.compute_pricing(payload, equipment_items=equipment_items)
+
+        if payload.slot_id:
+            slot = await self._claim_slot(
+                payload.slot_id,
+                payload.therapist_id,
+                payload.patient_name,
+                str(patient_id) if patient_id else "",
+            )
+            preferred_date = dt.date.fromisoformat(slot.date)
+            shift = self._shift_for(slot.start_time)
+            time_slot = f"{slot.start_time} - {slot.end_time}"
+        else:
+            preferred_date = payload.preferred_date
+            shift = payload.shift
+            time_slot = payload.time_slot
 
         booking = TherapyBooking(
             reference=generate_reference("THB"),
@@ -88,10 +287,14 @@ class TherapyBookingService:
             pincode=payload.pincode,
             service_category=payload.service_category,
             condition_notes=payload.condition_notes,
-            preferred_date=payload.preferred_date,
-            shift=payload.shift,
-            time_slot=payload.time_slot,
+            preferred_date=preferred_date,
+            shift=shift,
+            time_slot=time_slot,
             session_duration_minutes=payload.session_duration_minutes,
+            slot_id=payload.slot_id,
+            equipment_items=equipment_items,
+            assigned_staff_id=str(therapist.id) if therapist else None,
+            assigned_staff_name=therapist.name if therapist else None,
             frequency_type=payload.frequency_type,
             daily_visits_per_day=payload.daily_visits_per_day,
             weekly_days_count=payload.weekly_days_count,
@@ -108,6 +311,13 @@ class TherapyBookingService:
             therapist_payout=pricing.therapist_payout,
         )
         await self.repo.create(booking)
+
+        # Point the claimed slot back at the booking so cancelling can free it.
+        if slot is not None:
+            await TherapistSlot.get_motor_collection().update_one(
+                {"_id": slot.id},
+                {"$set": {"therapy_booking_id": str(booking.id), "booking_reference": booking.reference}},
+            )
 
         order = await razorpay_service.create_order(
             amount_rupees=booking.total_amount,
@@ -281,6 +491,9 @@ class TherapyBookingService:
         was_paid = booking.payment_status == PaymentStatus.PAID
         booking = await self._apply_status_transition(booking, status, admin_notes)
 
+        if status in {BookingStatus.CANCELLED, BookingStatus.REJECTED}:
+            await self._release_slot(booking)
+
         if status == BookingStatus.REJECTED and was_paid:
             # The platform is declining a paid booking (e.g. no therapist available) —
             # this isn't the patient cancelling, so it's always a full refund.
@@ -344,6 +557,8 @@ class TherapyBookingService:
         booking.cancelled_by = "patient"
         booking.touch()
         await booking.save()
+
+        await self._release_slot(booking)
 
         if was_paid:
             await self._process_refund(booking, refund_percent=percent)

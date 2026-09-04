@@ -94,6 +94,57 @@ async def seed_user_types() -> None:
             logger.info("Seeded core user type", extra={"slug": ct["slug"]})
 
 
+async def seed_therapy_equipment() -> None:
+    """Seed the platform equipment catalogue, per service category.
+
+    Idempotent by slug, so admin edits to charges are never overwritten and
+    re-running only fills in items that don't exist yet.
+    """
+    from app.models.enums import EquipmentOwner, ServiceCategory
+    from app.models.therapy_equipment import TherapyEquipment
+
+    catalogue = [
+        # ── Physiotherapy (the original portable modality library) ──
+        ("IFT (Interferential Therapy)", "ift", ServiceCategory.PHYSIOTHERAPY, 100),
+        ("TENS", "tens", ServiceCategory.PHYSIOTHERAPY, 100),
+        ("Ultrasound Therapy (UST)", "ust", ServiceCategory.PHYSIOTHERAPY, 100),
+        ("NMES", "nmes", ServiceCategory.PHYSIOTHERAPY, 100),
+        ("FES", "fes", ServiceCategory.PHYSIOTHERAPY, 100),
+        ("Portable EMS", "portable-ems", ServiceCategory.PHYSIOTHERAPY, 100),
+        ("Wax Bath Therapy", "wax-bath", ServiceCategory.PHYSIOTHERAPY, 100),
+        ("Hot/Cold Therapy", "hot-cold", ServiceCategory.PHYSIOTHERAPY, 100),
+        ("TheraBand / Resistance Band", "theraband", ServiceCategory.PHYSIOTHERAPY, 100),
+        # ── Home Rehabilitation ──
+        ("Parallel Bars", "parallel-bars", ServiceCategory.HOME_REHABILITATION, 200),
+        ("Gait Trainer / Walker", "gait-trainer", ServiceCategory.HOME_REHABILITATION, 150),
+        ("CPM Machine", "cpm-machine", ServiceCategory.HOME_REHABILITATION, 250),
+        ("Balance Board", "balance-board", ServiceCategory.HOME_REHABILITATION, 100),
+        # ── Yoga Therapy ──
+        ("Yoga Mat", "yoga-mat", ServiceCategory.YOGA_THERAPY, 50),
+        ("Yoga Blocks", "yoga-blocks", ServiceCategory.YOGA_THERAPY, 50),
+        ("Yoga Strap", "yoga-strap", ServiceCategory.YOGA_THERAPY, 50),
+        ("Bolster / Cushion", "yoga-bolster", ServiceCategory.YOGA_THERAPY, 75),
+        ("Meditation Cushion", "meditation-cushion", ServiceCategory.YOGA_THERAPY, 75),
+        # ── Massage Therapy ──
+        ("Massage Table", "massage-table", ServiceCategory.MASSAGE_THERAPY, 200),
+        ("Aromatherapy Oil Kit", "aroma-oil-kit", ServiceCategory.MASSAGE_THERAPY, 150),
+        ("Hot Stone Set", "hot-stone-set", ServiceCategory.MASSAGE_THERAPY, 250),
+        ("Massage Gun", "massage-gun", ServiceCategory.MASSAGE_THERAPY, 150),
+        ("Steam / Hot Towel Kit", "hot-towel-kit", ServiceCategory.MASSAGE_THERAPY, 100),
+    ]
+
+    for name, slug, category, charge in catalogue:
+        if await TherapyEquipment.find_one({"slug": slug}) is None:
+            await TherapyEquipment(
+                name=name,
+                slug=slug,
+                category=category,
+                charge=charge,
+                owner_type=EquipmentOwner.PLATFORM,
+            ).insert()
+            logger.info("Seeded therapy equipment", extra={"slug": slug})
+
+
 async def seed_services() -> None:
     """Seed the four core services from the business plan."""
     services_data = [
@@ -299,3 +350,4 @@ async def run_seed() -> None:
     await seed_admin()
     await seed_services()
     await seed_equipment()
+    await seed_therapy_equipment()

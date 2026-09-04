@@ -35,6 +35,18 @@ from app.models.enums import EquipmentCode, FrequencyType, MassageType, ServiceC
 from app.models.pricing_settings import PricingSettings
 
 
+def default_rates() -> PricingSettings:
+    """Field defaults as a plain object, with no database dependency.
+
+    ``PricingSettings`` is a Beanie Document, so constructing it normally
+    requires an initialised ODM. Pricing is pure arithmetic and must stay
+    callable without a database (unit tests, quotes computed off a rates
+    object already in hand), so the defaults are built via ``model_construct``
+    which skips ``Document.__init__`` while still applying field defaults.
+    """
+    return PricingSettings.model_construct()
+
+
 @dataclass(frozen=True)
 class PricingResult:
     visit_fee: int
@@ -58,16 +70,36 @@ def _platform_fee_percent(rates: PricingSettings, service_category: ServiceCateg
     }[service_category]
 
 
+def equipment_total(
+    equipment_charges: Optional[List[int]],
+    *,
+    legacy_count: int = 0,
+    rates: Optional[PricingSettings] = None,
+) -> int:
+    """Sum the selected equipment charges.
+
+    ``equipment_charges`` comes from the equipment catalogue, where every item
+    carries its own price. ``legacy_count`` supports bookings made with the old
+    hardcoded modality list, which were all billed at the single flat
+    ``machine_charge_per_unit`` rate.
+    """
+    rates = rates or default_rates()
+    if equipment_charges:
+        return sum(int(c) for c in equipment_charges)
+    return rates.machine_charge_per_unit * legacy_count
+
+
 def price_visit_booking(
     *,
     service_category: ServiceCategory,
     frequency_type: FrequencyType,
     daily_visits_per_day: Optional[int],
-    equipment: List[EquipmentCode],
+    equipment: Optional[List[EquipmentCode]] = None,
+    equipment_charges: Optional[List[int]] = None,
     rates: Optional[PricingSettings] = None,
 ) -> PricingResult:
     """Price a Physiotherapy / Yoga Therapy / Home Rehabilitation visit."""
-    rates = rates or PricingSettings()
+    rates = rates or default_rates()
     if service_category == ServiceCategory.MASSAGE_THERAPY:
         raise BadRequestException("Use price_massage_booking for massage therapy")
 
@@ -84,7 +116,9 @@ def price_visit_booking(
 
     # Package pricing already includes applicable machine use.
     is_package = frequency_type == FrequencyType.PACKAGE
-    machine_charge = 0 if is_package else rates.machine_charge_per_unit * len(equipment)
+    machine_charge = 0 if is_package else equipment_total(
+        equipment_charges, legacy_count=len(equipment or []), rates=rates
+    )
 
     return _finalize(rates, service_category, visit_fee, machine_charge)
 
@@ -93,10 +127,15 @@ def price_massage_booking(
     *,
     massage_type: MassageType,
     massage_duration_minutes: int,
+    equipment_charges: Optional[List[int]] = None,
     rates: Optional[PricingSettings] = None,
 ) -> PricingResult:
-    """Price a Massage Therapy session (no packages, no equipment)."""
-    rates = rates or PricingSettings()
+    """Price a Massage Therapy session.
+
+    Massage has no packages, but it *does* support equipment (massage table,
+    hot stones, oil kits...) selected from the massage equipment catalogue.
+    """
+    rates = rates or default_rates()
     massage_fee = {
         MassageType.NORMAL_OIL: rates.massage_normal_oil_fee,
         MassageType.DRY: rates.massage_dry_fee,
@@ -111,7 +150,8 @@ def price_massage_booking(
     if massage_duration_minutes > rates.massage_standard_max_minutes:
         visit_fee += rates.massage_overtime_surcharge
 
-    return _finalize(rates, ServiceCategory.MASSAGE_THERAPY, visit_fee, machine_charge=0)
+    machine_charge = equipment_total(equipment_charges, rates=rates)
+    return _finalize(rates, ServiceCategory.MASSAGE_THERAPY, visit_fee, machine_charge)
 
 
 def _finalize(
