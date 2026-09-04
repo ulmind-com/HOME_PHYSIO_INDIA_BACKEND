@@ -4,7 +4,7 @@ payment, and admin workflow (approve/reject/assign)."""
 from __future__ import annotations
 
 import datetime as dt
-from typing import List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, Field
@@ -13,9 +13,10 @@ from app.api.helpers import item_response, paginated_response
 from app.config import settings
 from app.core.exceptions import BadRequestException, ForbiddenException, NotFoundException
 from app.core.pagination import PaginationParams, pagination_params
+from app.core.logging import get_logger
 from app.core.permissions import ALL
 from app.dependencies.auth import ActorContext, _resolve_permissions, get_current_active_user, require_permission
-from app.models.enums import BookingStatus, EquipmentCode, Shift, SlotType
+from app.models.enums import BookingStatus, SlotType
 from app.models.therapist_slot import TherapistSlot
 from app.models.user import User
 from app.schemas.therapy_booking import (
@@ -31,48 +32,13 @@ from app.schemas.therapy_booking import (
 from app.services.therapy_booking_service import therapy_booking_service
 
 router = APIRouter(prefix="/therapy-bookings", tags=["Therapy Bookings"])
+logger = get_logger(__name__)
 
 
 class HomeVisitSlotCreate(BaseModel):
     date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$", description="YYYY-MM-DD")
     start_time: str = Field(..., pattern=r"^\d{2}:\d{2}$", description="HH:MM")
     end_time: str = Field(..., pattern=r"^\d{2}:\d{2}$", description="HH:MM")
-
-
-class EquipmentOption(BaseModel):
-    code: str
-    name: str
-    charge: int
-
-
-EQUIPMENT_CATALOGUE: List[EquipmentOption] = [
-    EquipmentOption(code=EquipmentCode.IFT.value, name="IFT (Interferential Therapy)", charge=100),
-    EquipmentOption(code=EquipmentCode.TENS.value, name="TENS", charge=100),
-    EquipmentOption(code=EquipmentCode.UST.value, name="Ultrasound Therapy (UST)", charge=100),
-    EquipmentOption(code=EquipmentCode.NMES.value, name="NMES", charge=100),
-    EquipmentOption(code=EquipmentCode.FES.value, name="FES", charge=100),
-    EquipmentOption(code=EquipmentCode.PORTABLE_EMS.value, name="Portable EMS", charge=100),
-    EquipmentOption(code=EquipmentCode.WAX_BATH.value, name="Wax Bath Therapy", charge=100),
-    EquipmentOption(code=EquipmentCode.HOT_COLD.value, name="Hot/Cold Therapy", charge=100),
-    EquipmentOption(code=EquipmentCode.THERABAND.value, name="TheraBand / Resistance Band", charge=100),
-]
-
-# Static representative slots per shift. There is no per-therapist calendar
-# yet, so these are illustrative options rather than live availability.
-TIME_SLOTS = {
-    Shift.MORNING: ["07:00 - 07:40", "08:00 - 08:40", "09:00 - 09:40", "10:00 - 10:40"],
-    Shift.NOON: ["12:00 - 12:40", "13:00 - 13:40"],
-    Shift.AFTERNOON: ["15:00 - 15:40", "16:00 - 16:40", "17:00 - 17:40"],
-    Shift.EVENING: ["18:00 - 18:40", "19:00 - 19:40", "20:00 - 20:40"],
-}
-
-
-@router.get("/equipment", summary="List portable equipment/modality options (legacy)")
-async def list_equipment(_: User = Depends(get_current_active_user)) -> dict:
-    """Superseded by ``GET /therapy-equipment/for-booking``, which is
-    category-aware and includes the therapist's own equipment. Kept so older
-    clients keep working."""
-    return {"success": True, "data": [e.model_dump() for e in EQUIPMENT_CATALOGUE]}
 
 
 @router.get("/therapist-availability", summary="Free home-visit slots for a therapist")
@@ -88,6 +54,13 @@ async def therapist_availability(
     Past dates are never returned, and taken slots are excluded unless the
     caller explicitly asks for them so the UI can grey them out.
     """
+    # Self-heal before answering: slots held by bookings that were never paid
+    # for would otherwise stay blocked forever. Never let this break browsing.
+    try:
+        await therapy_booking_service.release_abandoned_slots()
+    except Exception:  # pragma: no cover - housekeeping must not fail the request
+        logger.exception("Could not release abandoned slot holds")
+
     start = date_from or dt.date.today().isoformat()
     query: dict = {
         "therapist_id": therapist_id,
@@ -181,11 +154,6 @@ async def delete_my_slot(slot_id: str, user: User = Depends(get_current_active_u
         raise BadRequestException("This slot is already booked — cancel the booking first")
     await slot.delete()
     return {"success": True, "message": "Slot removed"}
-
-
-@router.get("/time-slots", summary="List available time slots for a shift")
-async def list_time_slots(shift: Shift = Query(...), _: User = Depends(get_current_active_user)) -> dict:
-    return {"success": True, "data": TIME_SLOTS[shift]}
 
 
 @router.post("/quote", summary="Get a live price quote for a draft selection")
@@ -312,8 +280,13 @@ async def therapist_update_status(
     """Let the assigned therapist move their own booking along.
 
     Deliberately narrower than the admin endpoint: a therapist can confirm a
-    visit, start it, finish it, or cancel it — but can't approve an unpaid
-    booking or touch someone else's work.
+    visit, start it, or cancel it — but can't approve an unpaid booking, mark a
+    visit complete, or touch someone else's work.
+
+    Completion is admin-only on purpose: it is the step that credits the
+    therapist's own commission, so letting them trigger it would let a
+    therapist pay themselves for a visit that never happened. They mark the
+    visit ``in_progress`` and admin closes it out.
     """
     booking = await therapy_booking_service.get_or_404(booking_id)
     if booking.assigned_staff_id != str(user.id):
@@ -322,9 +295,13 @@ async def therapist_update_status(
     allowed = {
         BookingStatus.APPROVED,
         BookingStatus.IN_PROGRESS,
-        BookingStatus.COMPLETED,
         BookingStatus.CANCELLED,
     }
+    if status == BookingStatus.COMPLETED:
+        raise ForbiddenException(
+            "Only an admin can mark a visit completed — it releases your payout. "
+            "Set it to 'in progress' and our team will close it out."
+        )
     if status not in allowed:
         raise BadRequestException(f"Therapists can't set a booking to '{status}'")
 
@@ -343,5 +320,7 @@ async def assign_staff(
     payload: TherapyBookingAssign,
     actor: ActorContext = Depends(require_permission("therapy_bookings", "update")),
 ) -> dict:
-    booking = await therapy_booking_service.assign_staff(booking_id, payload.assigned_staff_id, actor)
+    booking = await therapy_booking_service.assign_staff(
+        booking_id, payload.assigned_staff_id, actor, slot_id=payload.slot_id
+    )
     return item_response(TherapyBookingResponse, booking, "Therapist assigned")

@@ -16,11 +16,12 @@ from pydantic import BaseModel
 
 from app.api.helpers import item_response
 from app.config import settings
-from app.core.exceptions import BadRequestException, NotFoundException
+from app.core.exceptions import BadRequestException, ForbiddenException, NotFoundException
 from app.core.responses import success_response
 from app.dependencies.auth import get_current_user_optional, get_current_active_user
 from app.models.booking import Booking
 from app.models.therapist_slot import TherapistSlot
+from app.models.therapy_booking import TherapyBooking
 from app.models.user import User
 from app.services.email_service import email_service
 
@@ -80,8 +81,46 @@ def generate_zego_kit_token(
 
 class TokenRequest(BaseModel):
     roomId: str
-    userId: str
-    userName: Optional[str] = "User"
+    # userId/userName are ignored — identity always comes from the access token
+    # so a caller can't mint a token impersonating somebody else.
+    userId: Optional[str] = None
+    userName: Optional[str] = None
+
+
+BOOKING_ROOM_PREFIX = "booking_"
+
+#: Roles allowed to join any consultation room for support purposes.
+STAFF_ROLES = {"super_admin", "admin", "support"}
+
+
+async def _authorize_room(room_id: str, user: User) -> None:
+    """Only let a caller into a room they're actually a party to.
+
+    Rooms named ``booking_<reference>`` belong to a therapy booking, so the
+    caller must be that booking's patient or its assigned therapist. Admins
+    with booking visibility may join for support. Any other room id is a
+    private ad-hoc session and is allowed for authenticated users.
+    """
+    if not room_id.startswith(BOOKING_ROOM_PREFIX):
+        return
+
+    reference = room_id[len(BOOKING_ROOM_PREFIX):]
+    booking = await TherapyBooking.find_one({"reference": reference})
+    if booking is None:
+        # Nothing to check against — treat like an ad-hoc room.
+        return
+
+    uid = str(user.id)
+    if booking.patient_id == uid or booking.assigned_staff_id == uid:
+        return
+
+    # Back-office staff may join for support. This is a role check on purpose:
+    # every therapist holds `therapy_bookings:view` so they can see their own
+    # assignments, so that permission would let any therapist into any call.
+    if user.is_superuser or user.role in STAFF_ROLES:
+        return
+
+    raise ForbiddenException("You are not a participant of this consultation")
 
 
 class SlotCreateRequest(BaseModel):
@@ -93,19 +132,25 @@ class SlotCreateRequest(BaseModel):
 @router.get("/generate-token", summary="Generate ZegoCloud video token (GET)")
 async def generate_token_get(
     roomId: str = Query(..., description="Video room ID"),
-    userId: str = Query(..., description="User ID"),
-    userName: Optional[str] = Query("User", description="User Display Name"),
+    user: User = Depends(get_current_active_user),
 ) -> dict:
-    """Generate a secure ZegoCloud KitToken for 1-on-1 video call."""
-    if not roomId or not userId:
-        raise BadRequestException("roomId and userId are required parameters")
+    """Mint a ZegoCloud KitToken for the signed-in user.
+
+    The identity baked into the token is always the caller's own — it is never
+    taken from the request — and access to a booking's room is checked before
+    a token is issued.
+    """
+    if not roomId:
+        raise BadRequestException("roomId is required")
+
+    await _authorize_room(roomId, user)
 
     token = generate_zego_kit_token(
         app_id=settings.ZEGO_APP_ID,
         server_secret=settings.ZEGO_SERVER_SECRET,
         room_id=roomId,
-        user_id=userId,
-        user_name=userName or "User",
+        user_id=str(user.id),
+        user_name=user.name or "User",
         expire_seconds=3600,
     )
 
@@ -114,8 +159,8 @@ async def generate_token_get(
             "token": token,
             "appId": settings.ZEGO_APP_ID,
             "roomId": roomId,
-            "userId": userId,
-            "userName": userName,
+            "userId": str(user.id),
+            "userName": user.name,
             "expireTime": 3600,
         },
         message="Video token generated successfully",
@@ -123,13 +168,12 @@ async def generate_token_get(
 
 
 @router.post("/generate-token", summary="Generate ZegoCloud video token (POST)")
-async def generate_token_post(payload: TokenRequest) -> dict:
+async def generate_token_post(
+    payload: TokenRequest,
+    user: User = Depends(get_current_active_user),
+) -> dict:
     """Generate a secure ZegoCloud KitToken (POST body version)."""
-    return await generate_token_get(
-        roomId=payload.roomId,
-        userId=payload.userId,
-        userName=payload.userName,
-    )
+    return await generate_token_get(roomId=payload.roomId, user=user)
 
 
 @router.post("/send-meeting-email/{booking_id}", summary="Send video meeting email notification")

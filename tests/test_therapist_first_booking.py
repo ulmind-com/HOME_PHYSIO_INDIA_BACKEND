@@ -258,3 +258,143 @@ async def test_equipment_for_booking_merges_platform_and_therapist_items(client,
     assert own_item.name in names               # this therapist's own equipment
     assert others_item.name not in names        # never another therapist's
     assert yoga_item.name not in names          # never another category
+
+
+# ── Regression tests for the security / correctness fixes ──────────────
+
+
+async def test_video_token_requires_authentication(client):
+    """Anyone could previously mint a Zego token for any room."""
+    resp = await client.get("/api/v1/video/generate-token", params={"roomId": "booking_ANY"})
+    assert resp.status_code == 401
+
+
+async def test_video_token_rejects_a_room_you_are_not_part_of(client, auth_headers, db):
+    therapist = await _make_therapist("Room Masseur", "massage_therapist", "male")
+    slot = await _make_slot(therapist, _future_date(), "10:00", "11:00")
+    created = await client.post(
+        "/api/v1/therapy-bookings", headers=auth_headers, json=_massage_payload(therapist, slot)
+    )
+    reference = created.json()["data"]["booking"]["reference"]
+
+    # A therapist who has nothing to do with this booking
+    outsider = await _make_therapist("Nosy Outsider", "massage_therapist", "male")
+    login = await client.post(
+        "/api/v1/auth/login", json={"email": outsider.email, "password": "Test@12345"}
+    )
+    outsider_headers = {"Authorization": f"Bearer {login.json()['data']['access_token']}"}
+
+    resp = await client.get(
+        "/api/v1/video/generate-token",
+        headers=outsider_headers,
+        params={"roomId": f"booking_{reference}"},
+    )
+    assert resp.status_code == 403
+
+
+async def test_directory_does_not_leak_therapist_contact_details(client, auth_headers, db):
+    await _make_therapist("Private Physio", "physiotherapist", "male")
+
+    resp = await client.get(
+        "/api/v1/therapists", headers=auth_headers, params={"user_type": "physiotherapist"}
+    )
+    assert resp.status_code == 200
+    items = resp.json()["data"]["items"]
+    assert items, "expected at least one therapist"
+
+    leaked = {"email", "phone", "address", "pincode", "documents", "extra_permissions", "is_superuser"}
+    for field in leaked:
+        assert field not in items[0], f"{field} must not be exposed to patients"
+    assert items[0]["name"]
+
+
+async def test_reassignment_frees_the_previous_therapists_slot(client, auth_headers, db):
+    first = await _make_therapist("First Masseur", "massage_therapist", "male")
+    second = await _make_therapist("Second Masseur", "massage_therapist", "male")
+    old_slot = await _make_slot(first, _future_date(), "10:00", "11:00")
+    new_slot = await _make_slot(second, _future_date(), "14:00", "15:00")
+
+    created = await client.post(
+        "/api/v1/therapy-bookings", headers=auth_headers, json=_massage_payload(first, old_slot)
+    )
+    booking_id = created.json()["data"]["booking"]["id"]
+
+    # Pay + approve so the booking becomes assignable
+    booking = await tb_module.TherapyBooking.get(booking_id)
+    booking.payment_status = "paid"
+    booking.status = "approved"
+    await booking.save()
+
+    resp = await client.post(
+        f"/api/v1/therapy-bookings/{booking_id}/assign",
+        headers=auth_headers,
+        json={
+            "assigned_staff_id": str(second.id),
+            "assigned_staff_name": second.name,
+            "slot_id": str(new_slot.id),
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    data = resp.json()["data"]
+    assert data["assigned_staff_id"] == str(second.id)
+    assert data["time_slot"] == "14:00 - 15:00"
+
+    assert (await TherapistSlot.get(str(old_slot.id))).is_booked is False   # handed back
+    assert (await TherapistSlot.get(str(new_slot.id))).is_booked is True    # taken
+
+
+async def test_cannot_book_a_slot_in_the_past(client, auth_headers, db):
+    therapist = await _make_therapist("Past Masseur", "massage_therapist", "male")
+    past = await _make_slot(
+        therapist, (dt.date.today() - dt.timedelta(days=3)).isoformat(), "10:00", "11:00"
+    )
+
+    resp = await client.post(
+        "/api/v1/therapy-bookings", headers=auth_headers, json=_massage_payload(therapist, past)
+    )
+    assert resp.status_code == 400
+    assert "past" in resp.json()["message"].lower()
+
+
+async def test_therapist_cannot_complete_their_own_visit(client, auth_headers, db):
+    therapist = await _make_therapist("Eager Masseur", "massage_therapist", "male")
+    slot = await _make_slot(therapist, _future_date(), "10:00", "11:00")
+    created = await client.post(
+        "/api/v1/therapy-bookings", headers=auth_headers, json=_massage_payload(therapist, slot)
+    )
+    booking_id = created.json()["data"]["booking"]["id"]
+
+    login = await client.post(
+        "/api/v1/auth/login", json={"email": therapist.email, "password": "Test@12345"}
+    )
+    headers = {"Authorization": f"Bearer {login.json()['data']['access_token']}"}
+
+    resp = await client.patch(
+        f"/api/v1/therapy-bookings/{booking_id}/my-status",
+        headers=headers,
+        params={"status": "completed"},
+        json={},
+    )
+    assert resp.status_code == 403
+    assert "admin" in resp.json()["message"].lower()
+
+
+async def test_abandoned_unpaid_booking_releases_its_slot(client, auth_headers, db):
+    therapist = await _make_therapist("Ghost Masseur", "massage_therapist", "male")
+    slot = await _make_slot(therapist, _future_date(), "10:00", "11:00")
+    created = await client.post(
+        "/api/v1/therapy-bookings", headers=auth_headers, json=_massage_payload(therapist, slot)
+    )
+    booking_id = created.json()["data"]["booking"]["id"]
+    assert (await TherapistSlot.get(str(slot.id))).is_booked is True
+
+    # Age the unpaid booking past the hold window
+    booking = await tb_module.TherapyBooking.get(booking_id)
+    booking.created_at = tb_module.utcnow() - dt.timedelta(hours=2)
+    await booking.save()
+
+    released = await tb_module.therapy_booking_service.release_abandoned_slots()
+    assert released == 1
+
+    assert (await TherapistSlot.get(str(slot.id))).is_booked is False
+    assert (await tb_module.TherapyBooking.get(booking_id)).status == "cancelled"

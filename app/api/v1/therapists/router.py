@@ -11,7 +11,7 @@ from app.core.pagination import PaginationParams, pagination_params
 from app.dependencies.auth import get_current_active_user
 from app.models.user import User
 from app.repositories.base import BaseRepository
-from app.schemas.user import UserResponse
+from app.schemas.user import TherapistDirectoryResponse
 
 router = APIRouter(prefix="/therapists", tags=["Therapists"])
 _users: BaseRepository[User] = BaseRepository(User)
@@ -70,4 +70,4 @@ async def list_therapists(
         sort_order=params.sort_direction,
         filters=query,
     )
-    return paginated_response(UserResponse, items, total, params)
+    return paginated_response(TherapistDirectoryResponse, items, total, params)

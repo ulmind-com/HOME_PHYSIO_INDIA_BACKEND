@@ -93,6 +93,24 @@ class UserResponse(IdTimestampSchema):
     last_login_at: Optional[dt.datetime] = None
 
 
+class TherapistDirectoryResponse(IdTimestampSchema):
+    """A therapist as a *patient* is allowed to see them.
+
+    Deliberately excludes contact details (email/phone/address/pincode), the
+    uploaded verification documents, and internal security fields — the full
+    ``UserResponse`` is for admin surfaces only.
+    """
+
+    name: str
+    avatar: Optional[ImageAsset] = None
+    user_type: str
+    gender: Optional[str] = None
+    specialization: Optional[str] = None
+    qualification: Optional[str] = None
+    therapist_tier: Optional[str] = None
+    experience_years: Optional[int] = None
+
+
 class ProfileUpdate(BaseModel):
     """Fields a user may update on their own profile."""
 

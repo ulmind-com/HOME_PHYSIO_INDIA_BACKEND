@@ -159,6 +159,9 @@ class TherapyBookingStatusUpdate(BaseModel):
 class TherapyBookingAssign(BaseModel):
     assigned_staff_id: str
     assigned_staff_name: str
+    #: Optional slot from the *new* therapist's calendar. When given, the
+    #: booking is re-timed to it and the previous therapist's slot is released.
+    slot_id: Optional[str] = None
 
 
 class TherapyBookingResponse(IdTimestampSchema):

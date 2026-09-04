@@ -201,6 +201,8 @@ class TherapyBookingService:
             raise BadRequestException("That slot belongs to a different therapist")
         if slot.slot_type != SlotType.HOME_VISIT:
             raise BadRequestException("That slot is not a home-visit slot")
+        if slot.date < dt.date.today().isoformat():
+            raise BadRequestException("That slot is in the past")
 
         result = await TherapistSlot.get_motor_collection().update_one(
             {"_id": oid, "is_booked": False},
@@ -454,6 +456,40 @@ class TherapyBookingService:
         booking.touch()
         await booking.save()
 
+    async def release_abandoned_slots(self, older_than_minutes: int = 30) -> int:
+        """Free slots held by bookings whose payment was never completed.
+
+        A slot is claimed the moment a booking is created so two patients can't
+        pay for the same visit. If the patient walks away from the Razorpay
+        window that hold would otherwise last forever, silently blocking the
+        therapist's calendar. Anything still unpaid after ``older_than_minutes``
+        is released and the booking is cancelled.
+
+        Returns the number of bookings released.
+        """
+        cutoff = utcnow() - dt.timedelta(minutes=older_than_minutes)
+        stale = await TherapyBooking.find(
+            {
+                "payment_status": PaymentStatus.PENDING.value,
+                "status": BookingStatus.PENDING.value,
+                "slot_id": {"$ne": None},
+                "created_at": {"$lt": cutoff},
+            }
+        ).to_list()
+
+        released = 0
+        for booking in stale:
+            await self._release_slot(booking)
+            booking.slot_id = None
+            booking.status = BookingStatus.CANCELLED
+            booking.cancellation_reason = "Payment not completed — slot released automatically"
+            booking.cancelled_by = "system"
+            booking.touch()
+            await booking.save()
+            released += 1
+
+        return released
+
     # ---- Workflow -----------------------------------------------------------
 
     async def _apply_status_transition(
@@ -583,8 +619,16 @@ class TherapyBookingService:
         return booking
 
     async def assign_staff(
-        self, booking_id: str, staff_id: str, actor: ActorContext
+        self, booking_id: str, staff_id: str, actor: ActorContext, slot_id: Optional[str] = None
     ) -> TherapyBooking:
+        """Assign — or re-assign — a therapist to a booking.
+
+        Re-assignment (e.g. the original therapist falls ill) hands the visit
+        to somebody else, so the previous therapist's slot has to be handed
+        back or their calendar stays blocked forever. If the admin supplies a
+        ``slot_id`` from the new therapist's calendar it is claimed and the
+        booking is re-timed to it; otherwise the existing date/time is kept.
+        """
         booking = await self._get_or_404(booking_id)
         if booking.status not in ASSIGNABLE_STATUSES:
             raise BadRequestException(
@@ -610,15 +654,51 @@ class TherapyBookingService:
                     "Massage therapy requires a therapist whose gender matches the patient's (safety policy)"
                 )
 
+        previous_staff_id = booking.assigned_staff_id
+        previous_staff_name = booking.assigned_staff_name
+        is_reassignment = bool(previous_staff_id) and previous_staff_id != staff_id
+
+        # Claim the new therapist's slot first — if it's already taken we must
+        # not have released the old one.
+        new_slot = None
+        if slot_id:
+            new_slot = await self._claim_slot(
+                slot_id, staff_id, booking.patient_name, booking.patient_id or ""
+            )
+
+        if is_reassignment or new_slot is not None:
+            await self._release_slot(booking)
+
+        if new_slot is not None:
+            booking.slot_id = str(new_slot.id)
+            booking.preferred_date = dt.date.fromisoformat(new_slot.date)
+            booking.shift = self._shift_for(new_slot.start_time)
+            booking.time_slot = f"{new_slot.start_time} - {new_slot.end_time}"
+        elif is_reassignment:
+            # Handed to a new therapist without a new slot — the old slot is
+            # freed above and this booking no longer holds one.
+            booking.slot_id = None
+
         booking.assigned_staff_id = staff_id
         booking.assigned_staff_name = therapist.name
         booking.touch()
         await booking.save()
 
+        if new_slot is not None:
+            await TherapistSlot.get_motor_collection().update_one(
+                {"_id": new_slot.id},
+                {"$set": {"therapy_booking_id": str(booking.id), "booking_reference": booking.reference}},
+            )
+
         await activity_service.log(
             ActivityAction.UPDATE, "therapy_bookings",
             user_id=actor.user_id, user_email=actor.email,
-            entity_id=str(booking.id), description=f"Assigned {therapist.name}",
+            entity_id=str(booking.id),
+            description=(
+                f"Reassigned from {previous_staff_name} to {therapist.name}"
+                if is_reassignment
+                else f"Assigned {therapist.name}"
+            ),
             ip_address=actor.ip_address, user_agent=actor.user_agent,
         )
         return booking
