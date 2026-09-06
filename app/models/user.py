@@ -42,6 +42,16 @@ class User(TimestampedDocument):
     pincode: Optional[str] = None
     medical_condition: Optional[str] = None
 
+    # Location, for proximity matching (Uber-style "nearest therapist first").
+    # For a therapist this is their fixed service base; for a patient it's
+    # their last known location, refreshed each time they share it while
+    # searching. `location_label` is a free-text place name the owner chose
+    # to show (e.g. "Kolaghat") — never derived from the coordinates, so it
+    # can be shared with other users without exposing an exact address.
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    location_label: Optional[str] = None
+
     # Therapist specific fields
     specialization: Optional[str] = None
     experience_years: Optional[int] = None

@@ -21,7 +21,13 @@ def fake_razorpay(monkeypatch):
     monkeypatch.setattr(tb_module.razorpay_service, "enabled", True)
 
 
-async def _make_therapist(name: str, user_type: str, gender: str) -> User:
+async def _make_therapist(
+    name: str,
+    user_type: str,
+    gender: str,
+    lat: float | None = None,
+    lng: float | None = None,
+) -> User:
     user = User(
         name=name,
         email=f"{name.lower().replace(' ', '.')}@test.com",
@@ -32,6 +38,8 @@ async def _make_therapist(name: str, user_type: str, gender: str) -> User:
         verification_status="approved",
         is_active=True,
         is_email_verified=True,
+        lat=lat,
+        lng=lng,
     )
     await user.insert()
     return user
@@ -398,3 +406,96 @@ async def test_abandoned_unpaid_booking_releases_its_slot(client, auth_headers, 
 
     assert (await TherapistSlot.get(str(slot.id))).is_booked is False
     assert (await tb_module.TherapyBooking.get(booking_id)).status == "cancelled"
+
+
+# ---- Location-based matching (nearest-available-therapist-first) ---------
+
+# Fixed, deliberately synthetic coordinates — real-world town distances are
+# not what's under test here, only that the ranking math is correct.
+PATIENT_LOC = (22.50, 88.00)
+NEAR = (22.50, 88.01)   # ~1 km from the patient
+MID = (22.55, 88.05)    # tens of km away
+FAR = (23.00, 89.00)    # very far away
+
+
+async def test_directory_sorts_by_distance_when_location_given(client, auth_headers, db):
+    near = await _make_therapist("Near Physio", "physiotherapist", "male", *NEAR)
+    far = await _make_therapist("Far Physio", "physiotherapist", "male", *FAR)
+    mid = await _make_therapist("Mid Physio", "physiotherapist", "male", *MID)
+
+    resp = await client.get(
+        "/api/v1/therapists",
+        headers=auth_headers,
+        params={"user_type": "physiotherapist", "lat": PATIENT_LOC[0], "lng": PATIENT_LOC[1]},
+    )
+    assert resp.status_code == 200
+    items = resp.json()["data"]["items"]
+    names = [i["name"] for i in items]
+    assert names.index(near.name) < names.index(mid.name) < names.index(far.name)
+    # Distances are surfaced and monotonically increasing in list order.
+    distances = [i["distance_km"] for i in items]
+    assert distances == sorted(distances)
+
+
+async def test_directory_prefers_an_available_therapist_over_a_nearer_busy_one(
+    client, auth_headers, db
+):
+    busy_near = await _make_therapist("Busy Near Physio", "physiotherapist", "male", *NEAR)
+    free_mid = await _make_therapist("Free Mid Physio", "physiotherapist", "male", *MID)
+    # Only the farther therapist has an open future slot.
+    await _make_slot(free_mid, _future_date(), "10:00", "11:00")
+
+    resp = await client.get(
+        "/api/v1/therapists",
+        headers=auth_headers,
+        params={"user_type": "physiotherapist", "lat": PATIENT_LOC[0], "lng": PATIENT_LOC[1]},
+    )
+    items = resp.json()["data"]["items"]
+    names = [i["name"] for i in items]
+    assert names.index(free_mid.name) < names.index(busy_near.name)
+
+    by_name = {i["name"]: i for i in items}
+    assert by_name[free_mid.name]["has_availability"] is True
+    assert by_name[busy_near.name]["has_availability"] is False
+
+
+async def test_directory_still_shows_therapists_with_no_location_set(client, auth_headers, db):
+    """Nobody is hidden just because they haven't set a location yet."""
+    no_loc = await _make_therapist("No Location Physio", "physiotherapist", "male")
+    near = await _make_therapist("Located Physio", "physiotherapist", "male", *NEAR)
+
+    resp = await client.get(
+        "/api/v1/therapists",
+        headers=auth_headers,
+        params={"user_type": "physiotherapist", "lat": PATIENT_LOC[0], "lng": PATIENT_LOC[1]},
+    )
+    items = resp.json()["data"]["items"]
+    names = [i["name"] for i in items]
+    assert no_loc.name in names
+    assert near.name in names
+    # Known distance beats unknown distance.
+    assert names.index(near.name) < names.index(no_loc.name)
+    assert next(i for i in items if i["name"] == no_loc.name)["distance_km"] is None
+
+
+async def test_lat_and_lng_must_be_supplied_together(client, auth_headers, db):
+    resp = await client.get(
+        "/api/v1/therapists",
+        headers=auth_headers,
+        params={"user_type": "physiotherapist", "lat": PATIENT_LOC[0]},
+    )
+    assert resp.status_code == 400
+
+
+async def test_directory_never_leaks_raw_coordinates(client, auth_headers, db):
+    await _make_therapist("Coordinate Physio", "physiotherapist", "male", *NEAR)
+
+    resp = await client.get(
+        "/api/v1/therapists",
+        headers=auth_headers,
+        params={"user_type": "physiotherapist", "lat": PATIENT_LOC[0], "lng": PATIENT_LOC[1]},
+    )
+    item = resp.json()["data"]["items"][0]
+    assert "lat" not in item
+    assert "lng" not in item
+    assert isinstance(item["distance_km"], (int, float))

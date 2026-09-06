@@ -40,6 +40,9 @@ class UserCreate(BaseModel):
     qualification: Optional[str] = None
     therapist_tier: Optional[str] = None
     gender: Optional[str] = None
+    lat: Optional[float] = Field(None, ge=-90, le=90)
+    lng: Optional[float] = Field(None, ge=-180, le=180)
+    location_label: Optional[str] = Field(None, max_length=160)
 
 
 class UserUpdate(BaseModel):
@@ -57,6 +60,9 @@ class UserUpdate(BaseModel):
     qualification: Optional[str] = None
     therapist_tier: Optional[str] = None
     gender: Optional[str] = None
+    lat: Optional[float] = Field(None, ge=-90, le=90)
+    lng: Optional[float] = Field(None, ge=-180, le=180)
+    location_label: Optional[str] = Field(None, max_length=160)
 
 
 class TherapistVerificationUpdate(BaseModel):
@@ -85,6 +91,9 @@ class UserResponse(IdTimestampSchema):
     therapist_tier: Optional[str] = None
     verification_status: str = "approved"
     documents: List[TherapistDocumentResponse] = Field(default_factory=list)
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    location_label: Optional[str] = None
     role: str
     extra_permissions: List[str] = Field(default_factory=list)
     user_type: str
@@ -110,6 +119,14 @@ class TherapistDirectoryResponse(IdTimestampSchema):
     therapist_tier: Optional[str] = None
     experience_years: Optional[int] = None
 
+    # Distance from the searching patient, in kilometres — only computed and
+    # populated when the search request carried a lat/lng. Raw coordinates
+    # are deliberately never exposed here (see the model docstring); only a
+    # rounded distance and the therapist's own chosen label are shared.
+    location_label: Optional[str] = None
+    distance_km: Optional[float] = None
+    has_availability: Optional[bool] = None
+
 
 class ProfileUpdate(BaseModel):
     """Fields a user may update on their own profile."""
@@ -121,6 +138,9 @@ class ProfileUpdate(BaseModel):
     gender: Optional[str] = None
     pincode: Optional[str] = Field(None, min_length=4, max_length=10)
     medical_condition: Optional[str] = Field(None, max_length=2000)
+    lat: Optional[float] = Field(None, ge=-90, le=90)
+    lng: Optional[float] = Field(None, ge=-180, le=180)
+    location_label: Optional[str] = Field(None, max_length=160)
 
 
 # ---- Roles & permissions ----

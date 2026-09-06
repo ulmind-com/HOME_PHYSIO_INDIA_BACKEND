@@ -84,6 +84,26 @@ SLOT_PATTERNS = [
 
 DAYS_AHEAD = 7
 
+# Real West Bengal towns (Purba Medinipur / Howrah belt), so proximity
+# ranking has something realistic to sort — the exact scenario this data set
+# exists to exercise: a patient in Kolaghat should see the Kolaghat therapist
+# first, then fall back to Bagnan/Panskura once Kolaghat is fully booked.
+# (label, lat, lng, pincode)
+TOWNS: list[tuple[str, float, float, str]] = [
+    ("Kolaghat, Purba Medinipur", 22.4547, 87.8698, "721134"),
+    ("Bagnan, Howrah", 22.4740, 87.9770, "711303"),
+    ("Panskura, Purba Medinipur", 22.4167, 87.7833, "721152"),
+    ("Tamluk, Purba Medinipur", 22.3000, 87.9200, "721636"),
+    ("Mecheda, Purba Medinipur", 22.4300, 87.8300, "721137"),
+    ("Haldia, Purba Medinipur", 22.0667, 88.0698, "721602"),
+    ("Uluberia, Howrah", 22.4756, 88.1078, "711315"),
+    ("Kharagpur, Paschim Medinipur", 22.3460, 87.2320, "721301"),
+    ("Midnapore, Paschim Medinipur", 22.4257, 87.6198, "721101"),
+    ("Howrah", 22.5958, 88.2636, "711101"),
+    ("Kolkata", 22.5726, 88.3639, "700001"),
+    ("Contai, Purba Medinipur", 21.7789, 87.7480, "721401"),
+]
+
 
 def email_for(name: str) -> str:
     return f"{name.lower().replace(' ', '.')}@{DEMO_DOMAIN}"
@@ -117,6 +137,7 @@ async def seed() -> None:
     ):
         email = email_for(name)
         user = await User.find_one({"email": email})
+        town_label, town_lat, town_lng, town_pincode = TOWNS[index % len(TOWNS)]
 
         if user is None:
             user = User(
@@ -134,13 +155,25 @@ async def seed() -> None:
                 verification_status="approved",
                 is_active=True,
                 is_email_verified=True,
-                address="Kolkata, West Bengal",
-                pincode="700001",
+                address=f"{town_label}, West Bengal",
+                pincode=town_pincode,
+                lat=town_lat,
+                lng=town_lng,
+                location_label=town_label,
             )
             await user.insert()
             created_users += 1
         else:
             skipped += 1
+            # Backfill location on therapists seeded before this field existed,
+            # so re-running against an already-seeded database still gets you
+            # data to test proximity matching with.
+            if user.lat is None or user.lng is None:
+                user.lat = town_lat
+                user.lng = town_lng
+                user.location_label = town_label
+                user.address = user.address or f"{town_label}, West Bengal"
+                await user.save()
 
         therapist_id = str(user.id)
         category = CATEGORY_FOR_TYPE[user_type]
