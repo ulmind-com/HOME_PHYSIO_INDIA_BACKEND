@@ -40,6 +40,7 @@ class UserCreate(BaseModel):
     qualification: Optional[str] = None
     therapist_tier: Optional[str] = None
     gender: Optional[str] = None
+    avatar: Optional[ImageAsset] = None
     lat: Optional[float] = Field(None, ge=-90, le=90)
     lng: Optional[float] = Field(None, ge=-180, le=180)
     location_label: Optional[str] = Field(None, max_length=160)
@@ -60,6 +61,7 @@ class UserUpdate(BaseModel):
     qualification: Optional[str] = None
     therapist_tier: Optional[str] = None
     gender: Optional[str] = None
+    avatar: Optional[ImageAsset] = None
     lat: Optional[float] = Field(None, ge=-90, le=90)
     lng: Optional[float] = Field(None, ge=-180, le=180)
     location_label: Optional[str] = Field(None, max_length=160)
