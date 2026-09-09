@@ -126,6 +126,7 @@ async def create_user(
         qualification=payload.qualification,
         therapist_tier=payload.therapist_tier,
         gender=payload.gender,
+        avatar=payload.avatar,
         lat=payload.lat,
         lng=payload.lng,
         location_label=payload.location_label,
